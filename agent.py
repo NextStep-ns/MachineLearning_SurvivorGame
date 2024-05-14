@@ -19,7 +19,7 @@ class Agent:
         self.epsilon = 0 # randomness
         self.gamma = 0.9 # discount rate
         self.memory = deque(maxlen=MAX_MEMORY) # popleft()
-        self.model = Linear_QNet(11, 256, 3)
+        self.model = Linear_QNet(60, 256, 3)
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
 
 
@@ -38,28 +38,28 @@ class Agent:
             game.get_cell_info(cell_l) == DANGER, # Danger to the left
             game.get_cell_info(cell_u) == DANGER, # Danger up
 
-            
-            # Carrot location 
-            game.carrot.x > game.player.x,  # carrot right
-            game.carrot.y > game.player.y  # carrot down
-            game.carrot.x < game.player.x,  # carrot left
-            game.carrot.y < game.player.y,  # carrot up
+        ]
 
+        for carrot in game.carrot_group:
+            # Carrots location 
+            state.append(carrot.x > game.player.x)  # carrot right
+            state.append(carrot.y > game.player.y) # carrot down
+            state.append(carrot.x < game.player.x)  # carrot left
+            state.append(carrot.y < game.player.y)  # carrot up
 
             # knife location 
-            game.knife.x > game.player.x,  # knife right
-            game.knife.y > game.player.y  # knife down
-            game.knife.x < game.player.x,  # knife left
-            game.knife.y < game.player.y,  # knife up
+        state.append(game.knife.x > game.player.x)  # knife right
+        state.append(game.knife.y > game.player.y)  # knife down
+        state.append(game.knife.x < game.player.x)  # knife left
+        state.append(game.knife.y < game.player.y)  # knife up
 
-
-            #  location 
-            game.cow.x > game.player.x,  # cow right
-            game.cow.y > game.player.y  # cow down
-            game.cow.x < game.player.x,  # cow left
-            game.cow.y < game.player.y,  # cow up
+        for cow in game.cow_group:
+            #  cows location 
+            state.append(cow.x > game.player.x)  # cow right
+            state.append(cow.y > game.player.y)  # cow down
+            state.append(cow.x < game.player.x)  # cow left
+            state.append(cow.y < game.player.y)  # cow up
             
-            ]
 
         return np.array(state, dtype=int)
 
