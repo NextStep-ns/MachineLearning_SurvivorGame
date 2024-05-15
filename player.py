@@ -44,7 +44,7 @@ class Player(pygame.sprite.Sprite):
 
         # If 1 second has passed, decrease player's life by 1
         if elapsed_time >= 1000:
-            self.life_evolution(-1)
+            self.life_evolution(-10)
             self.last_update_time = now
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -55,11 +55,13 @@ class Player(pygame.sprite.Sprite):
         :param change: The amount by which the life should be changed
         :return: void
         """
-        self.life += change
-        if self.life > 100:
+        newlife=self.life + change
+        if newlife > 100:
             self.life = 100
-        elif self.life < 0:
+        elif newlife < 0:
             self.life = 0
+        else:
+            self.life=newlife
         
 
     def save_location(self):

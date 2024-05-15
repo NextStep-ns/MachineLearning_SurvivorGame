@@ -51,6 +51,10 @@ class Game:
         # ======================================= FLAGS ======================================
         self.interaction_carotte = False
         self.Carrots_exist = False
+        
+        #========================================Matrix Layer ================================
+        
+        self.sand_matrix = tmx_data.get_layer_by_name("sand").data
 
     def initialize_lifebar(self):
         """
@@ -73,6 +77,17 @@ class Game:
 
         # Initialize the font
         self.font = pygame.font.Font(None, 36)
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+    def game_to_matrix_position(self, x, y):
+            """
+            Convert game coordinates (x, y) to matrix indices (i, j).
+            """
+            taille_case = 16  # Taille d'une case de la matrice
+            i = y // taille_case
+            j = x // taille_case
+            return i, j
 
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -153,12 +168,12 @@ class Game:
             for _ in range(NbOfCarrots):
                 # Randomly generate carrot position until it's not colliding with any wall
                 while True:
-                    x = random.randint(0, self.width - 20)
-                    y = random.randint(0, self.heigth - 20)
+                    x = random.randint(0, len(self.sand_matrix)*16)
+                    y = random.randint(0, len(self.sand_matrix)*16)
+                    x_m,y_m=self.game_to_matrix_position(x, y)
                     carrot_rect = pygame.Rect(x, y, 20, 20)
-                    if not any(carrot_rect.colliderect(wall) for wall in self.walls):
+                    if not (any(carrot_rect.colliderect(wall) for wall in self.walls)) and (self.sand_matrix[x_m][y_m]>=10):
                         break
-    
                 carrot = Carrot(x, y)
                 self.carrot_group.add(carrot)
             self.carrot_group.update()
