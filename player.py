@@ -19,41 +19,48 @@ class Player(pygame.sprite.Sprite):
         self.position = [x,y]
         print(self.position)
 
-        self.speed = 1
+        self.speed = 2
 
         # Create a rectangle around the character's feet. Initialize at (0,0) that is topleft corner, the width and height
         self.feet = pygame.Rect(0, 0, self.rect.width * 0.3, 12)
-
         # Keep in memory the old character position in case of collision
         self.old_position = self.position.copy()
-
-        #HP of the player
+        
         self.life=100
-        self.max_health = 100
-
-        # ======================================= LIFE BAR ======================================
-        # Initialize the life bar
-        self.lifebar_width = 200
-        self.lifebar_height = 20
-        self.lifebar_outer_rect = pygame.Rect(10, 10, self.lifebar_width, self.lifebar_height)
-        self.lifebar_inner_rect = pygame.Rect(self.lifebar_outer_rect.left, self.lifebar_outer_rect.top + 2, 0,
-                                              self.lifebar_height - 4)
-        self.lifebar_color = (255, 0, 0)  # Red color
-
-        # Load heart image
-        self.heart_image = pygame.image.load('tiled/heart_lifebar.png')
-        self.heart_height = self.lifebar_height + 10
-        self.heart_image = pygame.transform.scale(self.heart_image, (self.heart_height, self.heart_height))
-        self.heart_rect = self.heart_image.get_rect()
-        self.heart_rect.topleft = (self.lifebar_outer_rect.left - 10, self.lifebar_outer_rect.top - 6)
-
-        # Initialize the font
-        self.font = pygame.font.Font(None, 36)
-
+ 
         # Initialize last update time
         self.last_update_time = pygame.time.get_ticks()
 
 #-----------------------------------------------------------------------------------------------------------------------
+        
+
+    def life_update(self):
+        """
+        Update player's life.
+        """
+        # Calculate elapsed time since last update
+        now = pygame.time.get_ticks()
+        elapsed_time = now - self.last_update_time
+
+        # If 1 second has passed, decrease player's life by 1
+        if elapsed_time >= 1000:
+            self.life_evolution(-1)
+            self.last_update_time = now
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+    def life_evolution(self, change):
+        """
+        Method to increase or decrease player's life
+        :param change: The amount by which the life should be changed
+        :return: void
+        """
+        self.life += change
+        if self.life > 100:
+            self.life = 100
+        elif self.life < 0:
+            self.life = 0
+        
 
     def save_location(self):
         """
@@ -102,51 +109,3 @@ class Player(pygame.sprite.Sprite):
         image = pygame.Surface([30,40])
         image.blit(self.sprite_sheet, (0,0), (x,y,30,40))
         return image
-
-#-----------------------------------------------------------------------------------------------------------------------
-
-    def life_evolution(self, change):
-        """
-        Method to increase or decrease player's life
-        :param change: The amount by which the life should be changed
-        :return: void
-        """
-        self.life += change
-        if self.life > 100:
-            self.life = 100
-        elif self.life < 0:
-            self.life = 0
-
-#-----------------------------------------------------------------------------------------------------------------------
-
-    def lifebar(self, group, screen):
-        # Calculate elapsed time since last update
-        now = pygame.time.get_ticks()
-        elapsed_time = now - self.last_update_time
-
-        # If 1 second has passed, decrease player's life by 1
-        if elapsed_time >= 1000:
-            self.life_evolution(-20)
-            self.last_update_time = now
-
-        # Update life bar
-        life_percentage = self.life / self.max_health
-        self.lifebar_inner_rect.width = int(self.lifebar_width * life_percentage - 2)
-        self.lifebar_inner_rect.left = self.lifebar_outer_rect.left + 2
-
-        # Display the different elements
-        group.draw(screen)
-
-        # Draw outer life bar
-        pygame.draw.rect(screen, (0, 0, 0), self.lifebar_outer_rect, 2)
-
-        # Draw inner life bar
-        pygame.draw.rect(screen, self.lifebar_color, self.lifebar_inner_rect)
-
-        screen.blit(self.heart_image, self.heart_rect)
-
-        # Draw "Eat or Die" text
-        text_surface = self.font.render("Eat or Die", True, (0, 0, 0))
-        text_rect = text_surface.get_rect(center=(self.lifebar_outer_rect.centerx, self.lifebar_outer_rect.centery))
-        screen.blit(text_surface, text_rect)
-
