@@ -1,98 +1,158 @@
 import pygame
-import pytmx
-import pyscroll
-from player import Player
+import random
+from enum import Enum
+from collections import namedtuple
+import numpy as np
 
-#-----------------------------------------------------------------------------------------------------------------------
+pygame.init()
+font = pygame.font.Font('arial.ttf', 25)
+#font = pygame.font.SysFont('arial', 25)
 
-class Game:
-    """
-    Creation of the Game class which is used to define the environment such as the character and the map itself.
-    """
+class ActionMouvement(Enum):
+    STAY=0
+    RIGHT = 1
+    LEFT = 2
+    UP = 3
+    DOWN = 4
+    INTERACT = 5
 
-    def __init__(self):
+Point = namedtuple('Point', 'x, y')
 
-        #Initialize the map of size 900pixels and 600pixels with title "Survivor Simulator"
-        self.screen = pygame.display.set_mode((900, 600))
-        pygame.display.set_caption("Survivor Simulator")
-        tmx_data = pytmx.util_pygame.load_pygame('tiled/map_.tmx')
-        map_data = pyscroll.data.TiledMapData(tmx_data)
-        map_layer = pyscroll.orthographic.BufferedRenderer(map_data, self.screen.get_size())
+# rgb colors
+WHITE = (255, 255, 255)
+RED = (200,0,0)
+BLUE1 = (0, 0, 255)
+BLUE2 = (0, 100, 255)
+BLACK = (0,0,0)
+
+BLOCK_SIZE = 20
+SPEED = 40
+
+class SnakeGameAI:
+
+    def __init__(self, w=640, h=480):
+        self.w = w
+        self.h = h
+        # init display
+        self.display = pygame.display.set_mode((self.w, self.h))
+        pygame.display.set_caption('Snake')
+        self.clock = pygame.time.Clock()
+        self.reset()
 
 
-        # Initialize character and get its initial position
-        player_position = tmx_data.get_object_by_name('Spawn_character')
-        self.player = Player(player_position.x, player_position.y)
-        map_layer.zoom = 2
+    def reset(self):
+        # init game state
+        self.action_movement= ActionMouvement.STAY
 
-        # Add obstacles to a list of obstacles
-        self.walls = []
+        self.head = [Point(self.w/2, self.h/2)]
+        self.score = 0
+        self.carrot = None
+        self._place_food()
+        self.frame_iteration = 0
 
-        for obj in tmx_data.objects:
-            if obj.type == 'obstacle':
-                self.walls.append(pygame.Rect(obj.x, obj.y, obj.width, obj.height))
-        self.group = pyscroll.PyscrollGroup(map_layer=map_layer, default_layer=2)
-        self.group.add(self.player)
 
-#-----------------------------------------------------------------------------------------------------------------------
+    def _place_food(self):
+        x = random.randint(0, (self.w-BLOCK_SIZE )//BLOCK_SIZE )*BLOCK_SIZE
+        y = random.randint(0, (self.h-BLOCK_SIZE )//BLOCK_SIZE )*BLOCK_SIZE
+        self.carrot = Point(x, y)
+        if self.carrot in self.head:
+            self._place_food()
 
-    def handle_input(self):
-        """
-        Link keyboard actions to move the character with the corresponding functions
-        :return: void
-        """
-        pressed = pygame.key.get_pressed()
 
-        if pressed[pygame.K_UP]:
-            self.player.move_up()
-        if pressed[pygame.K_DOWN]:
-            self.player.move_down()
-        if pressed[pygame.K_LEFT]:
-            self.player.move_left()
-        if pressed[pygame.K_RIGHT]:
-            self.player.move_right()
-
+    def play_step(self, action):
+        self.frame_iteration += 1
+        # 1. collect user input
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
+        
+        # 2. move
+        self._move(action) # update the head
+        
+        # 3. check if game over
+        reward = 0
+        game_over = False
+        if self.is_collision() or self.frame_iteration > 10000*(self.score+1):
+            game_over = True
+            reward = -10
+            return reward, game_over, self.score
 
-#-----------------------------------------------------------------------------------------------------------------------
+        # 4. place new food or just move
+        if action[-1] == 1 and self.head[0] == self.carrot:
+            self.score += 1
+            reward = 10
+            self._place_food()
+        
+        # 5. update ui and clock
+        self._update_ui()
+        self.clock.tick(SPEED)
+        # 6. return game over and score
+        return reward, game_over, self.score
 
-    def collisions(self):
 
-        # Necessary to update the position of the character in case of collision
-        self.group.update()
+    def is_collision(self, pt=None):
+        if pt is None:
+            pt = self.head[0]
+        # hits boundary
+        if pt.x > self.w - BLOCK_SIZE or pt.x < 0 or pt.y > self.h - BLOCK_SIZE or pt.y < 0:
+            return True
 
-        #if collision go back to old_position. collidelist() compare the self.player.feet rectangle and the self.walls one
-        if self.player.feet.collidelist(self.walls) > -1:
-            self.player.move_back()
+        return False
 
-#-----------------------------------------------------------------------------------------------------------------------
-    
-    def run(self):
-        """
-        While running loop to call all the functions until the user quit the game window.
 
-        :return: void
-        """
-        clock = pygame.time.Clock()
-        running = True
+    def _update_ui(self):
+        self.display.fill(BLACK)
 
-        while running:
-            self.player.save_location()
-            self.handle_input()
+        for pt in self.head:
+            pygame.draw.rect(self.display, BLUE1, pygame.Rect(pt.x, pt.y, BLOCK_SIZE, BLOCK_SIZE))
 
-            # Camera centered on the character
-            self.group.center(self.player.rect.center)
+        pygame.draw.rect(self.display, RED, pygame.Rect(self.carrot.x, self.carrot.y, BLOCK_SIZE, BLOCK_SIZE))
 
-            self.collisions()
-            self.player.update()
+        text = font.render("Score: " + str(self.score), True, WHITE)
+        self.display.blit(text, [0, 0])
+        pygame.display.flip()
 
-            # Display the different elements
-            self.group.draw(self.screen)
-            pygame.display.flip()
 
-            # tick() used to control the number of time the code go through the while loop every seconds - 120 FPS
-            clock.tick(120)
-        pygame.quit()
+    def _move(self, action):
+
+        clock_wise = [ActionMouvement.STAY,ActionMouvement.RIGHT, ActionMouvement.DOWN, ActionMouvement.LEFT, ActionMouvement.UP,ActionMouvement.INTERACT]
+
+        if np.array_equal(action, [1, 0, 0, 0, 0, 0]):
+            new_dir = clock_wise[0] # STAY
+
+        if np.array_equal(action, [0, 1, 0, 0, 0, 0]):
+            new_dir = clock_wise[1] # GO RIGHT
+        
+        if np.array_equal(action, [0, 0, 1, 0, 0, 0]):
+            new_dir = clock_wise[2] # GO DOWN
+
+        if np.array_equal(action, [0, 0, 0, 1, 0, 0]):
+            new_dir = clock_wise[3] # GO LEFT
+
+        if np.array_equal(action, [0, 0, 0, 0, 1, 0]):
+            new_dir = clock_wise[4] # GO UP
+
+        if np.array_equal(action, [0, 0, 0, 0, 0, 1]):
+            new_dir = clock_wise[5] # INTERACT
+
+
+        self.action_movement = new_dir
+
+        x = self.head[0].x
+        y = self.head[0].y
+
+        if self.action_movement == ActionMouvement.STAY:
+            pass
+        elif self.action_movement == ActionMouvement.RIGHT:
+            x += BLOCK_SIZE
+        elif self.action_movement == ActionMouvement.LEFT:
+            x -= BLOCK_SIZE
+        elif self.action_movement == ActionMouvement.DOWN:
+            y += BLOCK_SIZE
+        elif self.action_movement == ActionMouvement.UP:
+            y -= BLOCK_SIZE
+        elif self.action_movement == ActionMouvement.INTERACT:
+            pass
+
+        self.head[0] = Point(x, y)

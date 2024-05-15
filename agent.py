@@ -5,7 +5,8 @@ from collections import deque
 from game import SnakeGameAI
 from model import Linear_QNet, QTrainer
 from plotter import plot
-
+from collections import namedtuple
+Point = namedtuple('Point', 'x, y')
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
 LR = 0.001
@@ -19,48 +20,31 @@ class Agent:
         self.epsilon = 0 # randomness
         self.gamma = 0.9 # discount rate
         self.memory = deque(maxlen=MAX_MEMORY) # popleft()
-        self.model = Linear_QNet(60, 256, 3)
+        self.model = Linear_QNet(8, 256, 6)
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
 
 
     def get_state(self, game):
         
-        cell_r = (game.player.x+1,game.player.y)
-        cell_d = (game.player.x,game.player.y-1)
-        cell_l = (game.player.x-1,game.player.y)
-        cell_u = (game.player.x,game.player.y+1)
+        cell_r = Point(game.head[0].x+1,game.head[0].y)
+        cell_d = Point(game.head[0].x,game.head[0].y-1)
+        cell_l = Point(game.head[0].x-1,game.head[0].y)
+        cell_u = Point(game.head[0].x,game.head[0].y+1)
 
         state = [
-
             # Danger in the next possible cells (maybe we can do the distance to the danger)
-            game.get_cell_info(cell_r) == DANGER, # Danger to the right
-            game.get_cell_info(cell_d) == DANGER, # Danger down
-            game.get_cell_info(cell_l) == DANGER, # Danger to the left
-            game.get_cell_info(cell_u) == DANGER, # Danger up
+            game.is_collision(cell_r) == DANGER, # Danger to the right
+            game.is_collision(cell_d) == DANGER, # Danger down
+            game.is_collision(cell_l) == DANGER, # Danger to the left
+            game.is_collision(cell_u) == DANGER, # Danger up
 
+
+            game.carrot.x > game.head[0].x,  # carrot right
+            game.carrot.y > game.head[0].y, # carrot down
+            game.carrot.x < game.head[0].x,  # carrot left
+            game.carrot.y < game.head[0].y,  # carrot up
         ]
-
-        for carrot in game.carrot_group:
-            # Carrots location 
-            state.append(carrot.x > game.player.x)  # carrot right
-            state.append(carrot.y > game.player.y) # carrot down
-            state.append(carrot.x < game.player.x)  # carrot left
-            state.append(carrot.y < game.player.y)  # carrot up
-
-            # knife location 
-        state.append(game.knife.x > game.player.x)  # knife right
-        state.append(game.knife.y > game.player.y)  # knife down
-        state.append(game.knife.x < game.player.x)  # knife left
-        state.append(game.knife.y < game.player.y)  # knife up
-
-        for cow in game.cow_group:
-            #  cows location 
-            state.append(cow.x > game.player.x)  # cow right
-            state.append(cow.y > game.player.y)  # cow down
-            state.append(cow.x < game.player.x)  # cow left
-            state.append(cow.y < game.player.y)  # cow up
             
-
         return np.array(state, dtype=int)
 
     def remember(self, state, action, reward, next_state, done):
@@ -83,7 +67,7 @@ class Agent:
     def get_action(self, state):
         # random moves: tradeoff exploration / exploitation
         self.epsilon = 80 - self.n_games
-        final_move = [0,0,0,0,0]
+        final_move = [0,0,0,0,0,0]
         if random.randint(0, 200) < self.epsilon:
             move = random.randint(0, len(final_move)-1)
             final_move[move] = 1
@@ -119,7 +103,6 @@ def train():
 
         # remember
         agent.remember(state_old, final_move, reward, state_new, done)
-
         if done:
             # train long memory, plot result
             game.reset()

@@ -8,8 +8,8 @@ import datetime
 class Linear_QNet(nn.Module):
     def __init__(self, input_size, hidden_size, output_size) -> None:
         super().__init__()
-        self.linear1 = nn.linear1(input_size, hidden_size)
-        self.linear2 = nn.linear1(hidden_size, output_size)
+        self.linear1 = nn.Linear(input_size, hidden_size)
+        self.linear2 = nn.Linear(hidden_size, output_size)
 
     def forward(self,x):
         x = F.relu(self.linear1(x))
@@ -17,16 +17,18 @@ class Linear_QNet(nn.Module):
         return x
     
     def save(self,file_name=None):
-        folder_path="/model_saves"
+        folder_path="./model_saves"
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
         if not file_name:
             current_datetime = datetime.datetime.now()
             formatted_datetime = current_datetime.strftime("%Y-%m-%d_%H-%M-%S")
             file_name = f"model_{formatted_datetime}"
-        file_name+=+".pth"
+        file_name+=".pth"
         file_name = os.path.join(folder_path,file_name)
         torch.save(self.state_dict(),file_name)
+        if os.path.isfile(file_name):
+            print(f"file saved as {file_name}")
 
 class QTrainer:
     def __init__(self,model,lr,gamma) -> None:
