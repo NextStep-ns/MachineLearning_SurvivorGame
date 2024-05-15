@@ -1,11 +1,13 @@
 import pygame
 import pytmx
 import pyscroll
-from player import Player
 import sys
-from carrot import Carrot
 import random
 import time
+import xml.etree.ElementTree as ET
+from player import Player
+from carrot import Carrot
+from cow import Cow
 
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -13,48 +15,54 @@ class Game:
     """
     Creation of the Game class which is used to define the environment such as the character and the map itself.
     """
-
     def __init__(self):
-        
+        # ======================================= MAP INITILISATION ======================================
         #Initialize the map of size 900pixels and 600pixels with title "Survivor Simulator"
         self.width = 900
         self.heigth = 600
         self.screen = pygame.display.set_mode((self.width, self.heigth))
         pygame.display.set_caption("Survivor Simulator")
-        tmx_data = pytmx.util_pygame.load_pygame('tiled/Island_case/first_level_map.tmx')
+        tmx_data = pytmx.util_pygame.load_pygame('tiled/Island_case/island_map.tmx')
         map_data = pyscroll.data.TiledMapData(tmx_data)
-        self.map_layer = pyscroll.orthographic.BufferedRenderer(map_data, self.screen.get_size())
+        map_layer = pyscroll.orthographic.BufferedRenderer(map_data, (self.width, self.heigth))
 
         # Initialize UI elements
         self.initialize_lifebar()
 
+        # ======================================= OBJECT INIT ======================================
         # Initialize character and get its initial position
         player_position = tmx_data.get_object_by_name('Spawn_character')
         self.player = Player(player_position.x, player_position.y)
-        self.map_layer.zoom = 2
-
-        map_layer = pyscroll.orthographic.BufferedRenderer(map_data, (self.width, self.heigth))
-
+        map_layer.zoom = 2
 
         # Add obstacles to a list of obstacles
         self.walls = []
-        for obj in tmx_data.objects:
-            if obj.type == 'collision' or obj.type =='obstacle':
-                self.walls.append(pygame.Rect(obj.x, obj.y, obj.width, obj.height))
-        self.group = pyscroll.PyscrollGroup(map_layer=self.map_layer, default_layer=2)
-        self.group.add(self.player)
-        
-        #Initialize carrots
 
+        for obj in tmx_data.objects:
+            if obj.type == 'collision':
+                self.walls.append(pygame.Rect(obj.x, obj.y, obj.width, obj.height))
+
+        # Add the player to the corresponding layer to be display on
+        self.group = pyscroll.PyscrollGroup(map_layer=map_layer, default_layer=2)
+        self.group.add(self.player)
+
+        #Initialize carrots
         self.carrot_group = pyscroll.PyscrollGroup(map_layer=map_layer, default_layer=2)
-       
+
+        # Initialize cows
+        self.cow_group = pyscroll.PyscrollGroup(map_layer=map_layer, default_layer=2)
+
+        # Detect sand layer
+        self.sand_matrix = tmx_data.get_layer_by_name("sand").data
+        print(self.sand_matrix)
+
         # ======================================= FLAGS ======================================
         self.interaction_carotte = False
+        self.interaction_cow = False
         self.Carrots_exist = False
-        
-        #========================================Matrix Layer ================================
-        
-        self.sand_matrix = tmx_data.get_layer_by_name("sand").data
+        self.Cows_exist = False
+
+#-----------------------------------------------------------------------------------------------------------------------
 
     def initialize_lifebar(self):
         """
@@ -81,13 +89,47 @@ class Game:
 #-----------------------------------------------------------------------------------------------------------------------
 
     def game_to_matrix_position(self, x, y):
-            """
-            Convert game coordinates (x, y) to matrix indices (i, j).
-            """
-            taille_case = 16  # Taille d'une case de la matrice
-            i = y // taille_case
-            j = x // taille_case
-            return i, j
+        """
+        Convert game coordinates (x, y) to matrix indices (i, j).
+        """
+        taille_case = 16  # Taille d'une case de la matrice
+        i = y // taille_case
+        j = x // taille_case
+        return i, j
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+    def update_screen(self):
+        """
+        Update the game screen.
+        """
+        # Camera centered on the character
+        self.group.center(self.player.rect.center)
+
+        # Draw the map and player
+        self.group.draw(self.screen)
+
+        # Update life bar
+        life_percentage = self.player.life / self.player.max_health
+        self.lifebar_inner_rect.width = int(self.lifebar_width * life_percentage - 2)
+        self.lifebar_inner_rect.left = self.lifebar_outer_rect.left + 2
+
+        # Draw outer life bar
+        pygame.draw.rect(self.screen, (0, 0, 0), self.lifebar_outer_rect, 2)
+
+        # Draw inner life bar
+        pygame.draw.rect(self.screen, self.lifebar_color, self.lifebar_inner_rect)
+
+        # Draw heart image
+        self.screen.blit(self.heart_image, self.heart_rect)
+
+        # Draw "Eat or Die" text
+        text_surface = self.font.render("Eat or Die", True, (0, 0, 0))
+        text_rect = text_surface.get_rect(center=(self.lifebar_outer_rect.centerx, self.lifebar_outer_rect.centery))
+        self.screen.blit(text_surface, text_rect)
+
+        # Update the display
+        pygame.display.flip()
 
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -110,43 +152,8 @@ class Game:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-                sys.exit()
+                quit()
 
-#-----------------------------------------------------------------------------------------------------------------------
-
-
-    def update_screen(self):
-        """
-        Update the game screen.
-        """
-        # Camera centered on the character
-        self.group.center(self.player.rect.center)
-
-        # Draw the map and player
-        self.group.draw(self.screen)
-
-        # Update life bar
-        life_percentage = self.player.life / 100
-        self.lifebar_inner_rect.width = int(self.lifebar_width * life_percentage - 2)
-        self.lifebar_inner_rect.left = self.lifebar_outer_rect.left + 2
-
-        # Draw outer life bar
-        pygame.draw.rect(self.screen, (0, 0, 0), self.lifebar_outer_rect, 2)
-
-        # Draw inner life bar
-        pygame.draw.rect(self.screen, self.lifebar_color, self.lifebar_inner_rect)
-
-        # Draw heart image
-        self.screen.blit(self.heart_image, self.heart_rect)
-
-        # Draw "Eat or Die" text
-        text_surface = self.font.render("Eat or Die", True, (0, 0, 0))
-        text_rect = text_surface.get_rect(center=(self.lifebar_outer_rect.centerx, self.lifebar_outer_rect.centery))
-        self.screen.blit(text_surface, text_rect)
-
-        # Update the display
-        pygame.display.flip()
-        
 #-----------------------------------------------------------------------------------------------------------------------
 
     def collisions(self):
@@ -154,14 +161,11 @@ class Game:
         # Necessary to update the position of the character in case of collision
         self.group.update()
 
-        # If collision, go back to old_position. collidelist() compares the self.player.feet rectangle and the self.walls one
+        #if collision go back to old_position. collidelist() compare the self.player.feet rectangle and the self.walls one
         if self.player.feet.collidelist(self.walls) > -1:
             self.player.move_back()
 
-
 #-----------------------------------------------------------------------------------------------------------------------
-
-# Spawn pas parfait, il y a toujours des carrottes dans l'eau mais je capte pas pk /:    
 
     def spawn_carrot(self, NbOfCarrots):
         if not self.Carrots_exist:
@@ -172,25 +176,34 @@ class Game:
                     y = random.randint(0, len(self.sand_matrix)*16)
                     x_m,y_m=self.game_to_matrix_position(x, y)
                     carrot_rect = pygame.Rect(x, y, 20, 20)
-                    if not (any(carrot_rect.colliderect(wall) for wall in self.walls)) and (self.sand_matrix[x_m][y_m]>=10):
+                    if not (any(carrot_rect.colliderect(wall) for wall in self.walls))and (
+                            self.sand_matrix[x_m][y_m] > 0):
                         break
                 carrot = Carrot(x, y)
                 self.carrot_group.add(carrot)
             self.carrot_group.update()
-    
+
             print("carrots displayed")
             self.Carrots_exist = True
-
 
 #-----------------------------------------------------------------------------------------------------------------------
 
     def update_carrots(self):
-        self.carrot_group.update()
+
         if self.interaction_carotte:
-            time.sleep(3)
-            for carrot in self.carrot_group.sprites():
-                carrot.respawn(self.width, self.heigth)
+            for carrot in self.carrot_group:
+                while True:
+                    x = random.randint(0, len(self.sand_matrix) * 16)
+                    y = random.randint(0, len(self.sand_matrix) * 16)
+                    x_m, y_m = self.game_to_matrix_position(x, y)
+                    carrot_rect = pygame.Rect(x, y, 20, 20)
+                    if not (any(carrot_rect.colliderect(wall) for wall in self.walls)) and (
+                            self.sand_matrix[x_m][y_m] > 0):
+                        break
+                carrot.respawn(x, y)
+                break
             self.interaction_carotte = False
+            self.player.life += 5
 
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -199,7 +212,82 @@ class Game:
         for carrot in self.carrot_group:
             self.group.add(carrot)
 
-#-----------------------------------------------------------------------------------------------------------------------   
+#-----------------------------------------------------------------------------------------------------------------------
+
+    def collisions_carrot(self):
+
+        # Necessary to update the position of the character in case of collision
+        self.group.update()
+
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                for carrot in self.carrot_group:
+                    if carrot.rect.colliderect(self.player.rect):
+                        self.interaction_carotte = True
+                        return carrot
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+    def spawn_cow(self, NbOfCows):
+        if not self.Cows_exist:
+            for _ in range(NbOfCows):
+                # Randomly generate carrot position until it's not colliding with any wall
+                while True:
+                    x = random.randint(0, len(self.sand_matrix) * 16)
+                    y = random.randint(0, len(self.sand_matrix) * 16)
+                    x_m, y_m = self.game_to_matrix_position(x, y)
+                    rect = pygame.Rect(x, y, 20, 20)
+                    if not (any(rect.colliderect(wall) for wall in self.walls)) and (
+                            self.sand_matrix[x_m][y_m] > 0):
+                        break
+                cow = Cow(x, y)
+                self.cow_group.add(cow)
+            self.cow_group.update()
+
+            print("cows displayed")
+            self.Cows_exist = True
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+    def update_cows(self):
+
+        if self.interaction_cow:
+            for cow in self.cow_group:
+                while True:
+                    x = random.randint(0, len(self.sand_matrix) * 16)
+                    y = random.randint(0, len(self.sand_matrix) * 16)
+                    x_m, y_m = self.game_to_matrix_position(x, y)
+                    rect = pygame.Rect(x, y, 20, 20)
+                    if not (any(rect.colliderect(wall) for wall in self.walls))and (
+                            self.sand_matrix[x_m][y_m] > 0):
+                        break
+                cow.respawn(x, y)
+                break
+            self.interaction_cow = False
+            self.player.life += 20
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+    def draw_cows(self):
+        # Dessinez chaque carotte dans le groupe de sprites sur la surface de jeu
+        for cow in self.cow_group:
+            self.group.add(cow)
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+    def collisions_cow(self):
+
+        # Necessary to update the position of the character in case of collision
+        self.group.update()
+
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_c:
+                for cow in self.cow_group:
+                    if cow.rect.colliderect(self.player.rect):
+                        self.interaction_cow = True
+                        return cow
+
+#-----------------------------------------------------------------------------------------------------------------------
 
     def game_over(self):
         """
@@ -212,13 +300,14 @@ class Game:
         pygame.display.flip()
         pygame.time.delay(3000)  # Pause for 3 seconds before quitting
         pygame.quit()
-        sys.exit()    
+        sys.exit()
 
 #-----------------------------------------------------------------------------------------------------------------------
-
+    
     def run(self):
         """
         While running loop to call all the functions until the user quit the game window.
+        :return: void
         """
         clock = pygame.time.Clock()
         running = True
@@ -228,15 +317,27 @@ class Game:
             self.handle_input()
             self.collisions()
             self.player.update()
-            self.player.life_update() # Update player's life
-            self.update_screen()  # Update the game screen
-            if self.player.life <= 0: # Check if player's life is zero
-                self.game_over()
-            # Carrots
-            self.spawn_carrot(5)
-            self.update_carrots()
-            self.draw_carrots()
-            pygame.display.flip()
-            clock.tick(120)  # tick() used to control the number of times the code goes through the while loop every second - 120 FPS
-        pygame.quit()
+            self.player.life_update()
+            self.update_screen()
 
+            # Check if player's life is zero
+            if self.player.life <= 0:
+                self.game_over()
+
+            # Carrots
+            self.spawn_carrot(1)
+            self.draw_carrots()
+            self.collisions_carrot() # carrots collision
+            self.update_carrots()  # carrots update after collision
+
+            # Cows
+            self.spawn_cow(1)
+            self.draw_cows()
+            self.collisions_cow()  # cows collision
+            self.update_cows()  # cow update after collision
+
+            pygame.display.flip()
+
+            # tick() used to control the number of time the code go through the while loop every seconds - 120 FPS
+            clock.tick(240)
+        pygame.quit()

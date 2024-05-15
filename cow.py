@@ -5,13 +5,13 @@ import time
 #-----------------------------------------------------------------------------------------------------------------------
 
 # Définir une classe pour les carottes
-class Carrot(pygame.sprite.Sprite):
+class Cow(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
         self.x = x
         self.y = y
-        self.image = pygame.image.load('tiled/2909789.png')
-        self.image = pygame.transform.scale(self.image, (20, 20))
+        self.image = pygame.image.load('tiled/cow.png')
+        self.image = pygame.transform.scale(self.image, (50, 50))
         self.rect = self.image.get_rect()
         self.rect.topleft = (x, y)
 
