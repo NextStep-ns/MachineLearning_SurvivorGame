@@ -3,11 +3,11 @@ import pytmx
 import pyscroll
 import sys
 import random
-import time
-import xml.etree.ElementTree as ET
 from player import Player
 from carrot import Carrot
 from cow import Cow
+from knife import Knife
+from trap import Trap
 
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -50,7 +50,13 @@ class Game:
         self.carrot_group = pyscroll.PyscrollGroup(map_layer=map_layer, default_layer=2)
 
         # Initialize cows
-        self.cow_group = pyscroll.PyscrollGroup(map_layer=map_layer, default_layer=2)
+        self.cow_group = pyscroll.PyscrollGroup(map_layer=map_layer, default_layer=1)
+
+        # Initialize knife
+        self.knife_group = pyscroll.PyscrollGroup(map_layer=map_layer, default_layer=1)
+
+        # Initialize knife
+        self.trap_group = pyscroll.PyscrollGroup(map_layer=map_layer, default_layer=1)
 
         # Detect sand layer
         self.sand_matrix = tmx_data.get_layer_by_name("sand").data
@@ -59,8 +65,12 @@ class Game:
         # ======================================= FLAGS ======================================
         self.interaction_carotte = False
         self.interaction_cow = False
+        self.interaction_knife = False
+        self.interaction_trap = False
+        self.Traps_exist = False
         self.Carrots_exist = False
         self.Cows_exist = False
+        self.Knife_exist = False
 
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -93,8 +103,8 @@ class Game:
         Convert game coordinates (x, y) to matrix indices (i, j).
         """
         taille_case = 16  # Taille d'une case de la matrice
-        i = y // taille_case
-        j = x // taille_case
+        i = (y // taille_case)
+        j = (x // taille_case)
         return i, j
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -215,16 +225,16 @@ class Game:
 #-----------------------------------------------------------------------------------------------------------------------
 
     def collisions_carrot(self):
+        pressed = pygame.key.get_pressed()
 
         # Necessary to update the position of the character in case of collision
         self.group.update()
 
         for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                for carrot in self.carrot_group:
-                    if carrot.rect.colliderect(self.player.rect):
-                        self.interaction_carotte = True
-                        return carrot
+            for carrot in self.carrot_group:
+                if event.type == pygame.KEYDOWN and pressed[pygame.K_SPACE] and carrot.rect.colliderect(self.player.rect):
+                    self.interaction_carotte = True
+                    return carrot
 
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -266,6 +276,13 @@ class Game:
             self.interaction_cow = False
             self.player.life += 20
 
+            self.player.remove_from_inventory("knife")
+            self.player.sprite_sheet = pygame.image.load('tiled/aventurer_character(2).png')
+            self.player.image = self.player.get_image(364, 1065)
+
+            # Transparency color set to black
+            self.player.image.set_colorkey([0, 0, 0])
+
 #-----------------------------------------------------------------------------------------------------------------------
 
     def draw_cows(self):
@@ -276,16 +293,131 @@ class Game:
 #-----------------------------------------------------------------------------------------------------------------------
 
     def collisions_cow(self):
+        pressed = pygame.key.get_pressed()
 
         # Necessary to update the position of the character in case of collision
         self.group.update()
 
         for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_c:
-                for cow in self.cow_group:
-                    if cow.rect.colliderect(self.player.rect):
-                        self.interaction_cow = True
-                        return cow
+            for cow in self.cow_group:
+                if event.type == pygame.KEYDOWN and pressed[pygame.K_c] and cow.rect.colliderect(
+                        self.player.rect) and self.player.check_inventory("knife"):
+                    self.interaction_cow = True
+                    return cow
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+    def spawn_knife(self, NbOfKnifes):
+        if not self.Knife_exist:
+            for _ in range(NbOfKnifes):
+                # Randomly generate carrot position until it's not colliding with any wall
+                while True:
+                    x = random.randint(0, len(self.sand_matrix) * 16)
+                    y = random.randint(0, len(self.sand_matrix) * 16)
+                    x_m, y_m = self.game_to_matrix_position(x, y)
+                    rect = pygame.Rect(x, y, 20, 20)
+                    if not (any(rect.colliderect(wall) for wall in self.walls)) and (
+                            self.sand_matrix[x_m][y_m] > 0):
+                        break
+                knife = Knife(x, y)
+                self.knife_group.add(knife)
+            self.knife_group.update()
+
+            print("knifes displayed")
+            self.Knife_exist = True
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+    def update_knifes(self):
+
+        if self.interaction_knife:
+            for knife in self.knife_group:
+                while True:
+                    x = random.randint(0, len(self.sand_matrix) * 16)-1
+                    y = random.randint(0, len(self.sand_matrix) * 16)-1
+                    x_m, y_m = self.game_to_matrix_position(x, y)
+                    rect = pygame.Rect(x, y, 20, 20)
+                    if not (any(rect.colliderect(wall) for wall in self.walls)) and (
+                            self.sand_matrix[x_m][y_m] > 0):
+                        break
+                knife.respawn(x, y)
+                break
+            self.interaction_knife = False
+
+            self.player.image = pygame.image.load('tiled/personnage_couteau.png')
+            self.player.image = pygame.transform.scale(self.player.image, (40, 40))
+            self.player.add_to_inventory("knife")
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+    def draw_knife(self):
+        # Dessinez chaque carotte dans le groupe de sprites sur la surface de jeu
+        for knife in self.knife_group:
+            self.group.add(knife)
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+    def collisions_knife(self):
+        #self.knife_group = []
+        pressed = pygame.key.get_pressed()
+
+        # Necessary to update the position of the character in case of collision
+        self.group.update()
+
+        for event in pygame.event.get():
+            for knife in self.knife_group:
+                if event.type == pygame.KEYDOWN and pressed[pygame.K_k] and knife.rect.colliderect(
+                        self.player.rect):
+                    self.interaction_knife = True
+                    return knife
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+    def spawn_trap(self, NbOfTraps):
+        if not self.Traps_exist:
+            for _ in range(NbOfTraps):
+                # Randomly generate carrot position until it's not colliding with any wall
+                while True:
+                    x = random.randint(0, len(self.sand_matrix) * 16)
+                    y = random.randint(0, len(self.sand_matrix) * 16)
+                    x_m, y_m = self.game_to_matrix_position(x, y)
+                    rect = pygame.Rect(x, y, 20, 20)
+                    if not (any(rect.colliderect(wall) for wall in self.walls)) and (
+                            self.sand_matrix[x_m][y_m] > 0):
+                        break
+                trap = Trap(x, y)
+                self.trap_group.add(trap)
+            self.trap_group.update()
+
+            print("traps displayed")
+            self.Traps_exist = True
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+    def update_traps(self):
+
+        if self.interaction_trap:
+            self.interaction_trap = False
+            self.player.life = 0
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+    def draw_traps(self):
+        # Dessinez chaque carotte dans le groupe de sprites sur la surface de jeu
+        for trap in self.trap_group:
+            self.group.add(trap)
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+    def collisions_trap(self):
+        # Necessary to update the position of the character in case of collision
+        self.group.update()
+
+        for trap in self.trap_group:
+            if trap.rect.colliderect(self.player.rect):
+                self.interaction_trap = True
+                return trap
 
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -297,6 +429,9 @@ class Game:
         game_over_text = game_over_font.render("Game Over", True, (255, 0, 0))
         game_over_rect = game_over_text.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2))
         self.screen.blit(game_over_text, game_over_rect)
+        self.player.sprite_sheet = pygame.image.load('tiled/aventurer_character(2).png')
+        self.player.image = self.player.get_image(860, 1408)
+        self.player.image.set_colorkey([0, 0, 0])
         pygame.display.flip()
         pygame.time.delay(3000)  # Pause for 3 seconds before quitting
         pygame.quit()
@@ -321,7 +456,7 @@ class Game:
             self.update_screen()
 
             # Check if player's life is zero
-            if self.player.life <= 0:
+            if self.player.life == 0:
                 self.game_over()
 
             # Carrots
@@ -329,13 +464,27 @@ class Game:
             self.draw_carrots()
             self.collisions_carrot() # carrots collision
             self.update_carrots()  # carrots update after collision
+            pygame.display.flip()
 
             # Cows
             self.spawn_cow(1)
             self.draw_cows()
             self.collisions_cow()  # cows collision
             self.update_cows()  # cow update after collision
+            pygame.display.flip()
 
+            # Knife
+            self.spawn_knife(1)
+            self.draw_knife()
+            self.collisions_knife()
+            self.update_knifes()
+            pygame.display.flip()
+
+            # Trap
+            self.spawn_trap(3)
+            self.draw_traps()
+            self.collisions_trap()
+            self.update_traps()
             pygame.display.flip()
 
             # tick() used to control the number of time the code go through the while loop every seconds - 120 FPS

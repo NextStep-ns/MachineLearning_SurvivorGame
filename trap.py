@@ -1,16 +1,14 @@
 import pygame
 
-#-----------------------------------------------------------------------------------------------------------------------
-
-# Définir une classe pour les carottes
-class Cow(pygame.sprite.Sprite):
+class Trap(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
         self.x = x
         self.y = y
-        self.image = pygame.image.load('tiled/cow.png')
-        self.image = pygame.transform.scale(self.image, (50, 50))
-        self.rect = self.image.get_rect()
+        self.image = pygame.image.load('tiled/trap.png')
+        self.image = pygame.transform.scale(self.image, (30, 30))
+        #self.rect = self.image.get_rect()
+        self.rect = pygame.Rect(x, y, 5, 5)
         self.rect.topleft = (x, y)
 
 #-----------------------------------------------------------------------------------------------------------------------

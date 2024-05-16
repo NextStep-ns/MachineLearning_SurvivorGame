@@ -21,7 +21,7 @@ class Player(pygame.sprite.Sprite):
         self.position = [self.x,self.y]
         print(self.position)
 
-        self.speed = 0.5
+        self.speed = 0.8
 
         # Create a rectangle around the character's feet. Initialize at (0,0) that is topleft corner, the width and height
         self.feet = pygame.Rect(0, 0, self.rect.width * 0.3, 12)
@@ -36,7 +36,10 @@ class Player(pygame.sprite.Sprite):
         # Initialize last update time
         self.last_update_time = pygame.time.get_ticks()
 
-#-----------------------------------------------------------------------------------------------------------------------
+        # Initialize the inventory attribute as an empty list
+        self.inventory = []
+
+    #-----------------------------------------------------------------------------------------------------------------------
 
     def life_update(self):
         """
@@ -117,4 +120,21 @@ class Player(pygame.sprite.Sprite):
         image.blit(self.sprite_sheet, (0,0), (x,y,30,40))
         return image
 
+#-----------------------------------------------------------------------------------------------------------------------
 
+    def add_to_inventory(self, item):
+        self.inventory.append(item)
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+    def remove_from_inventory(self, item):
+        if item in self.inventory:
+            self.inventory.remove(item)
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+    def check_inventory(self, item):
+        for object in self.inventory:
+            if object == item:
+                return True
+        return False
