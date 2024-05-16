@@ -42,6 +42,13 @@ class Game:
             if obj.type == 'collision':
                 self.walls.append(pygame.Rect(obj.x, obj.y, obj.width, obj.height))
 
+        # Add obstacles to a list of obstacles
+        self.water = []
+
+        for obj in tmx_data.objects:
+            if obj.type == 'water':
+                self.water.append(pygame.Rect(obj.x, obj.y, obj.width, obj.height))
+
         # Add the player to the corresponding layer to be display on
         self.group = pyscroll.PyscrollGroup(map_layer=map_layer, default_layer=2)
         self.group.add(self.player)
@@ -138,6 +145,12 @@ class Game:
         text_rect = text_surface.get_rect(center=(self.lifebar_outer_rect.centerx, self.lifebar_outer_rect.centery))
         self.screen.blit(text_surface, text_rect)
 
+        # Display time
+        current_time = pygame.time.get_ticks() // 1000  # Convert milliseconds to seconds
+        font = pygame.font.Font(None, 36)
+        time_text = font.render(f"Time: {current_time}", True, (0, 0, 0))
+        self.screen.blit(time_text, (800, 10))  # Display at (10, 10) on the screen
+
         # Update the display
         pygame.display.flip()
 
@@ -148,15 +161,14 @@ class Game:
         Link keyboard actions to move the character with the corresponding functions
         :return: void
         """
-        pressed = pygame.key.get_pressed()
 
-        if pressed[pygame.K_UP]:
+        if self.pressed[pygame.K_UP]:
             self.player.move_up()
-        if pressed[pygame.K_DOWN]:
+        elif self.pressed[pygame.K_DOWN]:
             self.player.move_down()
-        if pressed[pygame.K_LEFT]:
+        elif self.pressed[pygame.K_LEFT]:
             self.player.move_left()
-        if pressed[pygame.K_RIGHT]:
+        elif self.pressed[pygame.K_RIGHT]:
             self.player.move_right()
 
         for event in pygame.event.get():
@@ -177,11 +189,31 @@ class Game:
 
 #-----------------------------------------------------------------------------------------------------------------------
 
+    def collisions_water(self):
+
+        # Necessary to update the position of the character in case of collision
+        self.group.update()
+
+        # if collision go back to old_position. collidelist() compare the self.player.feet rectangle and the self.walls one
+        if self.player.feet.collidelist(self.water) > -1:
+            self.player.life -= 0.5
+            self.player.image = pygame.image.load('tiled/drowning_character.png')
+            self.player.image = pygame.transform.scale(self.player.image, (40, 40))
+
+        else:
+            self.player.sprite_sheet = pygame.image.load('tiled/aventurer_character(2).png')
+            self.player.image = self.player.get_image(364, 1065)
+            self.player.image.set_colorkey([0, 0, 0])
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+
     def spawn_item(self, Nbr, item):
         exist_attr = f"{item.capitalize()}s_exist"
+        print(exist_attr)
         group = getattr(self, f"{item}_group")
         obj_class = globals()[item.capitalize()]  # Récupère la classe Cow ou Carrot en fonction de l'argument 'item'
-    
+
         if not getattr(self, exist_attr):
             for _ in range(Nbr):
                 while True:
@@ -191,28 +223,28 @@ class Game:
                     rect = pygame.Rect(x, y, 20, 20)
                     if not any(rect.colliderect(wall) for wall in self.walls) and self.sand_matrix[x_m][y_m] > 0:
                         break
-    
+
                 new_item = obj_class(x, y)
                 group.add(new_item)
                 setattr(self, exist_attr, True)
                 print(f"{item}s displayed")
             group.update()
-            
+
 #-----------------------------------------------------------------------------------------------------------------------
-    
+
     def update_item(self, life_change, item):
-             
+
         interaction = f"interaction_{item}"
         group = getattr(self, f"{item}_group")
         if getattr(self, interaction):
-            if item=="trap":
+            if item == "trap":
                 self.interaction_trap = False
                 self.player.life = 0
                 return
             for item_obj in group:
                 while True:
-                    x = random.randint(0, len(self.sand_matrix) * 16)-1
-                    y = random.randint(0, len(self.sand_matrix) * 16)-1
+                    x = random.randint(0, len(self.sand_matrix) * 16) - 1
+                    y = random.randint(0, len(self.sand_matrix) * 16) - 1
                     x_m, y_m = self.game_to_matrix_position(x, y)
                     rect = pygame.Rect(x, y, 20, 20)
                     if not any(rect.colliderect(wall) for wall in self.walls) and self.sand_matrix[x_m][y_m] > 0:
@@ -221,15 +253,16 @@ class Game:
                 break
             setattr(self, interaction, False)
             self.player.life += life_change
-            
-            if item=="cow":
+
+            if item == "cow":
+                print("im in cow")
                 self.player.remove_from_inventory("knife")
                 self.player.sprite_sheet = pygame.image.load('tiled/aventurer_character(2).png')
                 self.player.image = self.player.get_image(364, 1065)
-                # Transparency color set to black
                 self.player.image.set_colorkey([0, 0, 0])
-                
-            if item=="knife":
+
+            if item == "knife":
+                print(self.player.image)
                 self.player.image = pygame.image.load('tiled/personnage_couteau.png')
                 self.player.image = pygame.transform.scale(self.player.image, (40, 40))
                 self.player.add_to_inventory("knife")
@@ -241,24 +274,23 @@ class Game:
         group = getattr(self, f"{item}_group")
         for obj in group:
             self.group.add(obj)
-            
+
 #-----------------------------------------------------------------------------------------------------------------------
 
     def collision_item(self, item, key):
         # Mettre à jour la position du personnage en cas de collision
-        pressed = pygame.key.get_pressed()
         self.group.update()
         for obj in getattr(self, f"{item}_group"):
-            if item=="cow":
-                if obj.rect.colliderect(self.player.rect) and pressed[key] and self.player.check_inventory("knife") :
+            if item == "cow":
+                if obj.rect.colliderect(self.player.rect) and self.pressed[key] and self.player.check_inventory("knife"):
                     setattr(self, f"interaction_{item}", True)
                     return obj
-            elif item=="trap":
-                if obj.rect.colliderect(self.player.rect):
+            elif item == "trap":
+                if obj.rect.colliderect(self.player.feet):
                     setattr(self, f"interaction_{item}", True)
                     return obj
             else:
-                if obj.rect.colliderect(self.player.rect) and pressed[key]:
+                if obj.rect.colliderect(self.player.rect) and self.pressed[key]:
                     setattr(self, f"interaction_{item}", True)
                     return obj
 
@@ -272,9 +304,6 @@ class Game:
         game_over_text = game_over_font.render("Game Over", True, (255, 0, 0))
         game_over_rect = game_over_text.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2))
         self.screen.blit(game_over_text, game_over_rect)
-        self.player.sprite_sheet = pygame.image.load('tiled/aventurer_character(2).png')
-        self.player.image = self.player.get_image(860, 1408)
-        self.player.image.set_colorkey([0, 0, 0])
         pygame.display.flip()
         pygame.time.delay(3000)  # Pause for 3 seconds before quitting
         pygame.quit()
@@ -291,9 +320,12 @@ class Game:
         running = True
 
         while running:
+            self.pressed = pygame.key.get_pressed()
+
             self.player.save_location()
             self.handle_input()
             self.collisions()
+            self.collisions_water()
             self.player.update()
             self.player.life_update()
             self.update_screen()
@@ -303,33 +335,37 @@ class Game:
                 self.game_over()
 
             # Carrots
-            self.spawn_item(1,"carrot")
+            if not self.carrot_group:
+                self.spawn_item(1, "carrot")
             self.draw_item("carrot")
-            self.collision_item("carrot",pygame.K_SPACE) # carrots collision
-            self.update_item(5,"carrot")  # carrots update after collision
+            self.collision_item("carrot", pygame.K_SPACE)  # carrots collision
+            self.update_item(5, "carrot")  # carrots update after collision
             pygame.display.flip()
 
             # Cows
-            self.spawn_item(1,"cow")
+            if not self.cow_group:
+                self.spawn_item(1, "cow")
             self.draw_item("cow")
-            self.collision_item("cow",pygame.K_c)  # cows collision
-            self.update_item(20,"cow")  # cow update after collision
+            self.collision_item("cow", pygame.K_c)  # cows collision
+            self.update_item(20, "cow")  # cow update after collision
             pygame.display.flip()
 
             # Knife
-            self.spawn_item(1,"knife")
+            if not self.knife_group:
+                self.spawn_item(1, "knife")
+            self.collision_item("knife", pygame.K_k)
+            self.update_item(0, "knife")
             self.draw_item("knife")
-            self.collision_item("knife",pygame.K_k)
-            self.update_item(0,"knife")
             pygame.display.flip()
 
             # Trap
-            self.spawn_item(3,"trap")
+            if not self.trap_group:
+                self.spawn_item(3, "trap")
             self.draw_item("trap")
             self.collision_item("trap", None)
-            self.update_item(0,"trap")
+            self.update_item(0, "trap")
             pygame.display.flip()
 
             # tick() used to control the number of time the code go through the while loop every seconds - 120 FPS
-            clock.tick(240)
+            clock.tick(120)
         pygame.quit()

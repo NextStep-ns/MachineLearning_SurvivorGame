@@ -21,7 +21,7 @@ class Player(pygame.sprite.Sprite):
         self.position = [self.x,self.y]
         print(self.position)
 
-        self.speed = 0.8
+        self.speed = 3
 
         # Create a rectangle around the character's feet. Initialize at (0,0) that is topleft corner, the width and height
         self.feet = pygame.Rect(0, 0, self.rect.width * 0.3, 12)
@@ -51,7 +51,7 @@ class Player(pygame.sprite.Sprite):
 
         # If 1 second has passed, decrease player's life by 1
         if elapsed_time >= 1000:
-            self.life_evolution(-2)
+            self.life_evolution(-5)
             self.last_update_time = now
 
 #-----------------------------------------------------------------------------------------------------------------------

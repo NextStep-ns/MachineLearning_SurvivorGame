@@ -1,7 +1,6 @@
 import pygame
 
 #-----------------------------------------------------------------------------------------------------------------------
-
 # Définir une classe pour les carottes
 class Cow(pygame.sprite.Sprite):
     def __init__(self, x, y):
