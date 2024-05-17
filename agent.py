@@ -2,7 +2,7 @@ import torch
 import random
 import numpy as np
 from collections import deque
-from game import SnakeGameAI
+from game import GameAI
 from model import Linear_QNet, QTrainer
 from plotter import plot,hist
 from collections import namedtuple
@@ -20,7 +20,7 @@ class Agent:
         self.epsilon = 0 # randomness
         self.gamma = 0.9 # discount rate
         self.memory = deque(maxlen=MAX_MEMORY) # popleft()
-        self.model = Linear_QNet(8, 256, 6)
+        self.model = Linear_QNet(8, 256, 5)
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
 
 
@@ -68,25 +68,29 @@ class Agent:
         else:
             distance_c_d=0
             distance_c_u=-(game.carrot.y - game.head.y)
-            """
+
+
+
 
         cell_r=Point(game.head.x+1,game.head.y)
         cell_d=Point(game.head.x,game.head.y+1)
         cell_l=Point(game.head.x-1,game.head.y)
         cell_u=Point(game.head.x,game.head.y-1)
+            """
+
         
         state = [
             # Danger
-            game.is_collision(cell_r), # Danger to the right
-            game.is_collision(cell_d), # Danger down
-            game.is_collision(cell_l), # Danger to the left
-            game.is_collision(cell_u), # Danger up
+            game.is_collision(0), # Danger to the right
+            game.is_collision(1), # Danger down
+            game.is_collision(2), # Danger to the left
+            game.is_collision(3), # Danger up
 
             # Carrots
-            game.carrot.x > game.head.x,
-            game.carrot.y > game.head.y,
-            game.carrot.x < game.head.x,
-            game.carrot.y < game.head.y
+            game.where_is_carrot(0),
+            game.where_is_carrot(1),
+            game.where_is_carrot(2),
+            game.where_is_carrot(3),
 
         ]
             
@@ -111,9 +115,9 @@ class Agent:
 
     def get_action(self, state):
         # random moves: tradeoff exploration / exploitation
-        self.epsilon = 80 - self.n_games
-        final_move = [0,0,0,0,0,0]
-        if random.randint(0, 200) < self.epsilon:
+        self.epsilon = 50 - self.n_games
+        final_move = [0,0,0,0,0]
+        if random.randint(0,100 ) < self.epsilon:
             move = random.randint(0, len(final_move)-1)
             final_move[move] = 1
         else:
@@ -132,7 +136,7 @@ def train():
     total_score = 0
     record = 0
     agent = Agent()
-    game = SnakeGameAI()
+    game = GameAI()
     while True:
         # get old state
         state_old = agent.get_state(game)
