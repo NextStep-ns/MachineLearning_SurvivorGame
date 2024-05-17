@@ -4,7 +4,7 @@ import numpy as np
 from collections import deque
 from game import SnakeGameAI
 from model import Linear_QNet, QTrainer
-from plotter import plot
+from plotter import plot,hist
 from collections import namedtuple
 Point = namedtuple('Point', 'x, y')
 MAX_MEMORY = 100_000
@@ -25,24 +25,69 @@ class Agent:
 
 
     def get_state(self, game):
+        distance_r=0
+        distance_d=0
+        distance_l=0
+        distance_u=0
+        distance_c_r=0
+        distance_c_d=0
+        distance_c_l=0
+        distance_c_u=0
+
+        """
+        for i in range(int(game.w-game.head.x)): #to the right
+            cell_r = Point(game.head.x+1+i,game.head.y)
+            if game.is_collision(cell_r):
+                distance_r=i
+                break
+        for i in range(int(game.head.x)): # to the left
+            cell_d = Point(game.head.x,game.head.y-1-i)
+            if game.is_collision(cell_d):
+                distance_r=i
+                break
+        for i in range(int(game.head.y)): # up
+            cell_l = Point(game.head.x-1-i,game.head.y)
+            if game.is_collision(cell_l):
+                distance_r=i
+                break
+        for i in range(int(game.h-game.head.y)): # down
+            cell_u = Point(game.head.x,game.head.y+1+i)
+            if game.is_collision(cell_u):
+                distance_r=i
+                break
+        if game.carrot.x - game.head.x:  # if >0 carrot is to the right
+            distance_c_r=game.carrot.x - game.head.x
+            distance_c_l=0
+        else:
+            distance_c_r=0
+            distance_c_l=-(game.carrot.x - game.head.x)
+
+        if game.carrot.y - game.head.y: # if >0 carrot is down
+            distance_c_d=game.carrot.y - game.head.y
+            distance_c_u=0
+        else:
+            distance_c_d=0
+            distance_c_u=-(game.carrot.y - game.head.y)
+            """
+
+        cell_r=Point(game.head.x+1,game.head.y)
+        cell_d=Point(game.head.x,game.head.y+1)
+        cell_l=Point(game.head.x-1,game.head.y)
+        cell_u=Point(game.head.x,game.head.y-1)
         
-        cell_r = Point(game.head[0].x+1,game.head[0].y)
-        cell_d = Point(game.head[0].x,game.head[0].y-1)
-        cell_l = Point(game.head[0].x-1,game.head[0].y)
-        cell_u = Point(game.head[0].x,game.head[0].y+1)
-
         state = [
-            # Danger in the next possible cells (maybe we can do the distance to the danger)
-            game.is_collision(cell_r) == DANGER, # Danger to the right
-            game.is_collision(cell_d) == DANGER, # Danger down
-            game.is_collision(cell_l) == DANGER, # Danger to the left
-            game.is_collision(cell_u) == DANGER, # Danger up
+            # Danger
+            game.is_collision(cell_r), # Danger to the right
+            game.is_collision(cell_d), # Danger down
+            game.is_collision(cell_l), # Danger to the left
+            game.is_collision(cell_u), # Danger up
 
+            # Carrots
+            game.carrot.x > game.head.x,
+            game.carrot.y > game.head.y,
+            game.carrot.x < game.head.x,
+            game.carrot.y < game.head.y
 
-            game.carrot.x > game.head[0].x,  # carrot right
-            game.carrot.y > game.head[0].y, # carrot down
-            game.carrot.x < game.head[0].x,  # carrot left
-            game.carrot.y < game.head[0].y,  # carrot up
         ]
             
         return np.array(state, dtype=int)
@@ -82,6 +127,7 @@ class Agent:
 
 def train():
     plot_scores = []
+    plot_actions = [0,0,0,0,0,0]
     plot_mean_scores = []
     total_score = 0
     record = 0
@@ -93,9 +139,11 @@ def train():
 
         # get move
         final_move = agent.get_action(state_old)
-
+        plot_actions[final_move.index(1)]+=1
+        #hist(plot_actions)
+        
         # perform move and get new state
-        reward, done, score = game.play_step(final_move)
+        reward, done, score = game.play_step(final_move,agent.n_games)
         state_new = agent.get_state(game)
 
         # train short memory
@@ -120,6 +168,7 @@ def train():
             mean_score = total_score / agent.n_games
             plot_mean_scores.append(mean_score)
             plot(plot_scores, plot_mean_scores)
+            plot_actions = [0,0,0,0,0,0]
 
 
 if __name__ == '__main__':
