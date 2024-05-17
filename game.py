@@ -67,7 +67,6 @@ class Game:
 
         # Detect sand layer
         self.sand_matrix = tmx_data.get_layer_by_name("sand").data
-        print(self.sand_matrix)
 
         # ======================================= FLAGS ======================================
         self.interaction_carrot = False
@@ -78,6 +77,9 @@ class Game:
         self.Carrots_exist = False
         self.Cows_exist = False
         self.Knifes_exist = False
+        self.knifeflag=False
+        
+        self.interaction_water = False
 
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -199,11 +201,14 @@ class Game:
             self.player.life -= 0.5
             self.player.image = pygame.image.load('tiled/drowning_character.png')
             self.player.image = pygame.transform.scale(self.player.image, (40, 40))
+            self.interaction_water = True
 
         else:
-            self.player.sprite_sheet = pygame.image.load('tiled/aventurer_character(2).png')
-            self.player.image = self.player.get_image(364, 1065)
-            self.player.image.set_colorkey([0, 0, 0])
+            if self.interaction_water:
+                self.player.sprite_sheet = pygame.image.load('tiled/aventurer_character(2).png')
+                self.player.image = self.player.get_image(364, 1065)
+                self.player.image.set_colorkey([0, 0, 0])
+                self.interaction_water = False
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -249,7 +254,11 @@ class Game:
                     rect = pygame.Rect(x, y, 20, 20)
                     if not any(rect.colliderect(wall) for wall in self.walls) and self.sand_matrix[x_m][y_m] > 0:
                         break
-                item_obj.respawn(x, y)
+                if item=="knife":
+                    if not self.knifeflag:
+                        item_obj.respawn(2000, 2000)
+                else:
+                    item_obj.respawn(x,y)
                 break
             setattr(self, interaction, False)
             self.player.life += life_change
@@ -262,11 +271,11 @@ class Game:
                 self.player.image.set_colorkey([0, 0, 0])
 
             if item == "knife":
-                print(self.player.image)
+                print("pat",self.player.image)
                 self.player.image = pygame.image.load('tiled/personnage_couteau.png')
                 self.player.image = pygame.transform.scale(self.player.image, (40, 40))
                 self.player.add_to_inventory("knife")
-
+            
 #-----------------------------------------------------------------------------------------------------------------------
 
     def draw_item(self, item):
@@ -284,11 +293,22 @@ class Game:
             if item == "cow":
                 if obj.rect.colliderect(self.player.rect) and self.pressed[key] and self.player.check_inventory("knife"):
                     setattr(self, f"interaction_{item}", True)
+                    for item_obj in getattr(self, "knife_group"):
+                        while True:
+                            x = random.randint(0, len(self.sand_matrix) * 16) - 1
+                            y = random.randint(0, len(self.sand_matrix) * 16) - 1
+                            x_m, y_m = self.game_to_matrix_position(x, y)
+                            rect = pygame.Rect(x, y, 20, 20)
+                            if not any(rect.colliderect(wall) for wall in self.walls) and self.sand_matrix[x_m][y_m] > 0:
+                                break
+                    item_obj.respawn(x,y)
                     return obj
+                
             elif item == "trap":
                 if obj.rect.colliderect(self.player.feet):
                     setattr(self, f"interaction_{item}", True)
                     return obj
+                
             else:
                 if obj.rect.colliderect(self.player.rect) and self.pressed[key]:
                     setattr(self, f"interaction_{item}", True)
@@ -353,9 +373,9 @@ class Game:
             # Knife
             if not self.knife_group:
                 self.spawn_item(1, "knife")
+            self.draw_item("knife")
             self.collision_item("knife", pygame.K_k)
             self.update_item(0, "knife")
-            self.draw_item("knife")
             pygame.display.flip()
 
             # Trap

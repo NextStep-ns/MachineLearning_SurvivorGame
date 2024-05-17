@@ -21,3 +21,7 @@ class Knife(pygame.sprite.Sprite):
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)
+        
+    # Destructeur
+    def __del__(self):
+        print("Knife destroyed")

@@ -7,7 +7,8 @@ class Trap(pygame.sprite.Sprite):
         self.y = y
         self.image = pygame.image.load('tiled/trap.png')
         self.image = pygame.transform.scale(self.image, (30, 30))
-        self.rect = pygame.Rect(x+15, y-15, 15, 15)
+        self.rect = self.image.get_rect()
+        self.rect = pygame.Rect(x+150, y+150, 30, 30)
         self.rect.topleft = (x, y)
 
 #-----------------------------------------------------------------------------------------------------------------------
