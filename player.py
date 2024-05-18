@@ -51,7 +51,7 @@ class Player(pygame.sprite.Sprite):
 
         # If 1 second has passed, decrease player's life by 1
         if elapsed_time >= 100:
-            self.life_evolution(-3,n_carrots)
+            self.life_evolution(-2,1)
             self.last_update_time = now
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -62,7 +62,7 @@ class Player(pygame.sprite.Sprite):
         :param change: The amount by which the life should be changed
         :return: void
         """
-        newlife = self.life + change*(1+n_carrots)
+        newlife = self.life + change
         if newlife < 0:
             self.life = 0
         else:

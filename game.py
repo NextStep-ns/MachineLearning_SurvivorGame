@@ -10,6 +10,7 @@ from cow import Cow
 from knife import Knife
 from trap import Trap
 import numpy as np
+import os
 
 #-----------------------------------------------------------------------------------------------------------------------
 class ActionMouvement(Enum):
@@ -32,10 +33,12 @@ class GameAI:
     def __init__(self):
         # ======================================= MAP INITILISATION ======================================
         #Initialize the map of size 900pixels and 600pixels with title "Survivor Simulator"
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        font_path = os.path.join(script_dir, 'arial.ttf')
         self.width = 900
         self.heigth = 600
         pygame.init()
-        self.font = pygame.font.Font('arial.ttf', 25)
+        self.font = pygame.font.Font(font_path, 25)
         self.screen = pygame.display.set_mode((self.width, self.heigth))
         pygame.display.set_caption("Survivor Simulator")
         self.tmx_data = pytmx.util_pygame.load_pygame('tiled/Island_case/island_map.tmx')
@@ -197,32 +200,32 @@ class GameAI:
         :return: void
         """
         
-        clock_wise = [ActionMouvement.RIGHT, ActionMouvement.DOWN, ActionMouvement.LEFT, ActionMouvement.UP,ActionMouvement.INTERACT]
-
-        if np.array_equal(action, [1, 0, 0, 0, 0]):
+         #clock_wise = [ActionMouvement.RIGHT, ActionMouvement.DOWN, ActionMouvement.LEFT, ActionMouvement.UP,ActionMouvement.INTERACT]
+        clock_wise = [ActionMouvement.RIGHT, ActionMouvement.DOWN, ActionMouvement.LEFT, ActionMouvement.UP]
+        if np.array_equal(action, [1, 0, 0, 0]):
             new_dir = clock_wise[0] # GO RIGHT
             print('RIGHT')
             self.player.move_right()
         
-        if np.array_equal(action, [ 0, 1, 0, 0, 0]):
+        if np.array_equal(action, [ 0, 1, 0, 0]):
             new_dir = clock_wise[1] # GO DOWN
             print('DOWN')
             self.player.move_down()
 
-        if np.array_equal(action, [ 0, 0, 1, 0, 0]):
+        if np.array_equal(action, [ 0, 0, 1, 0]):
             new_dir = clock_wise[2] # GO LEFT
             print('LEFT')
             self.player.move_left()
 
-        if np.array_equal(action, [ 0, 0, 0, 1, 0]):
+        if np.array_equal(action, [ 0, 0, 0, 1]):
             new_dir = clock_wise[3] # GO UP
             print('UP')
             self.player.move_up()
-
+        '''
         if np.array_equal(action, [ 0, 0, 0, 0, 1]):
             new_dir = clock_wise[4] # INTERACT
-            self.reward=-5
-            print('INTERACT')
+            self.reward+=0
+            print('INTERACT') '''
 
 
         for event in pygame.event.get():
@@ -250,9 +253,10 @@ class GameAI:
 
         # if collision go back to old_position. collidelist() compare the self.player.feet rectangle and the self.walls one
         if self.player.feet.collidelist(self.water) > -1:
-            self.player.life -= 0
+            self.player.life = 0
             self.player.image = pygame.image.load('tiled/drowning_character.png')
             self.player.image = pygame.transform.scale(self.player.image, (40, 40))
+            self.reward-=0
             return True
 
         else:
@@ -317,8 +321,8 @@ class GameAI:
             for _ in range(Nbr):
                 while True:
                     
-                    x = random.randint(0, len(self.sand_matrix) * 16) - 1
-                    y = random.randint(0, len(self.sand_matrix) * 16) - 1
+                    x = random.randrange(320,640-3*16,16) # random.randint(0, len(self.sand_matrix) * 16) - 1
+                    y = random.randrange(320,640-3*16,16) #random.randint(0, len(self.sand_matrix) * 16) - 1
 
                     x_m, y_m = self.game_to_matrix_position(x, y)
                     rect = pygame.Rect(x, y, 20, 20)
@@ -343,8 +347,9 @@ class GameAI:
                 return
             for item_obj in group:
                 while True:
-                    x = random.randint(0, len(self.sand_matrix) * 16) - 1
-                    y = random.randint(0, len(self.sand_matrix) * 16) - 1
+
+                    x = random.randrange(320,640-3*16,16) # random.randint(0, len(self.sand_matrix) * 16) - 1
+                    y = random.randrange(320,640-3*16,16) #random.randint(0, len(self.sand_matrix) * 16) - 1
                     
                     x_m, y_m = self.game_to_matrix_position(x, y)
                     rect = pygame.Rect(x, y, 20, 20)
@@ -392,16 +397,17 @@ class GameAI:
                     self.game_over_var=True
                     return obj
             elif item == "carrot":
-                if obj.rect.colliderect(self.player.rect) and action[-1]==1:
+                #if obj.rect.colliderect(self.player.rect) and action[-1]==1:
+                if obj.rect.colliderect(self.player.rect):
                     setattr(self, f"interaction_{item}", True)
-                    self.reward=5
+                    self.reward+=0
                     self.n_carrots+=1
                     return obj
 
             else:
-                if obj.rect.colliderect(self.player.rect) and action[-1]==1:
+                if obj.rect.colliderect(self.player.rect):# and action[-1]==1:
                     setattr(self, f"interaction_{item}", True)
-                    self.reward=0
+                    self.reward+=0
                     return obj
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -436,7 +442,7 @@ class GameAI:
         # Check if player's life is zero or if iterations too long
         if self.player.life <= 0:
             self.game_over_var=True
-            self.reward-=10  #00-self.n_carrots*10
+            self.reward-=0  #00-self.n_carrots*10
             if self.reward<-100:
                 self.reward=-100
 
@@ -477,6 +483,8 @@ class GameAI:
         """
         self.clock.tick(SPEED)
         if self.game_over_var:
-            self.reward+=(self.current_time-7)*0
+            print("PAtrick")
+            print(pygame.time.get_ticks()-self.start_ticks)
+            self.reward+=(pygame.time.get_ticks()-self.start_ticks)*1
 
         return self.reward, self.game_over_var,self.n_carrots
