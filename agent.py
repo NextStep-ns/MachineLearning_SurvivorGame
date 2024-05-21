@@ -2,7 +2,7 @@ import torch
 import random
 import numpy as np
 from collections import deque
-from ai_game import AIGame
+from game import GameAI
 from model import Linear_QNet, QTrainer
 from plotter import plot,hist
 from collections import namedtuple
@@ -21,7 +21,7 @@ class Agent:
         self.epsilon = 0 # randomness
         self.gamma = 0.9 # discount rate
         self.memory = deque(maxlen=MAX_MEMORY) # popleft()
-        self.input_size=8
+        self.input_size=17
         self.hidden_size=256
         self.output_size=self.nb_actions
         self.model = Linear_QNet(self.input_size,self.hidden_size,self.output_size)
@@ -44,6 +44,18 @@ class Agent:
             self.game.where_is_carrot(2),
             self.game.where_is_carrot(3),
 
+            # Cow
+            self.game.where_is_cow(0),
+            self.game.where_is_cow(1),
+            self.game.where_is_cow(2),
+            self.game.where_is_cow(3),
+
+            # knife
+            self.game.where_is_knife(0),
+            self.game.where_is_knife(1),
+            self.game.where_is_knife(2),
+            self.game.where_is_knife(3),
+            self.game.have_knife()
         ]
         return self.state
 
@@ -73,6 +85,7 @@ class Agent:
             self.final_move[move] = 1
         
         else:
+            print("here")
             state0 = torch.tensor(self.state, dtype=torch.float)
             prediction = self.model(state0)
             move = torch.argmax(prediction).item()
@@ -135,7 +148,7 @@ class Agent:
             self.next_action()
             
             # perform move and get new state
-            reward, done, score = game.play_step(self.final_move,self.n_games)
+            reward, done, score, score_cow, score_knife = game.play_step(self.final_move,self.n_games)
             state_new=self.state_update()
 
             # train short memory
@@ -158,14 +171,14 @@ class Agent:
 
 def train():
     agent = Agent()
-    game = AIGame()
+    game = GameAI()
     mode=2
     if mode==0:
         pass
     elif mode==1:
         agent.train_agent(game)
     elif mode==2:
-        agent.load_model("./model_best_scores/model_score167_2024-05-21_10-40-58.pth")
+        agent.load_model("./model_best_score/model_2024-05-21_06-20-20.pth")
         agent.play_agent(game,mode)
     
 
