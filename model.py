@@ -16,24 +16,27 @@ class Linear_QNet(nn.Module):
         x = self.linear4(x)
         return x
     
-    def save(self,file_name=None):
+    def save(self,file_name=None,score=None):
         folder_path="./model_saves"
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
         if not file_name:
             current_datetime = datetime.datetime.now()
             formatted_datetime = current_datetime.strftime("%Y-%m-%d_%H-%M-%S")
-            file_name = f"model_{formatted_datetime}"
+            file_name = f"model_score{score}_{formatted_datetime}"
         file_name+=".pth"
         file_name = os.path.join(folder_path,file_name)
         torch.save(self.state_dict(),file_name)
         if os.path.isfile(file_name):
             print(f"file saved as {file_name}")
 
-    def load(self, file_name='model.pth'):
-        model_folder_path = './model'
-        file_name = os.path.join(model_folder_path, file_name)
-        self.load_state_dict(torch.load(file_name))
+    def load(self, file_path):
+        if os.path.isfile(file_path):
+            self.load_state_dict(torch.load(file_path))
+            self.eval()
+            print(f"Model loaded from {file_path}")
+        else:
+            print(f"File {file_path} does not exist")
 
 class QTrainer:
     def __init__(self,model,lr,gamma) -> None:
