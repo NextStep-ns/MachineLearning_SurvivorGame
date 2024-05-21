@@ -19,6 +19,7 @@ class Player(pygame.sprite.Sprite):
         # Create a rectangle around the character for collisions
         self.rect = self.image.get_rect()
         self.position = [self.x,self.y]
+        print(self.position)
 
         self.speed = CELL_SIZE
 
@@ -29,8 +30,8 @@ class Player(pygame.sprite.Sprite):
         self.old_position = self.position.copy()
 
         #HP of the player
-        self.life=100
-        self.max_health = 100
+        self.life=120
+        self.max_health = 120
 
         # Initialize last update time
         self.last_update_time = pygame.time.get_ticks()
@@ -40,7 +41,7 @@ class Player(pygame.sprite.Sprite):
 
     #-----------------------------------------------------------------------------------------------------------------------
 
-    def life_update(self):
+    def life_update(self,n_carrots):
         """
         Update player's life.
         """
@@ -50,22 +51,23 @@ class Player(pygame.sprite.Sprite):
 
         # If 1 second has passed, decrease player's life by 1
         if elapsed_time >= 100:
-            self.life_evolution(-3)
+            self.life_evolution(-2,1)
             self.last_update_time = now
 
 #-----------------------------------------------------------------------------------------------------------------------
 
-    def life_evolution(self, change,):
+    def life_evolution(self, change,n_carrots):
         """
         Method to increase or decrease player's life
         :param change: The amount by which the life should be changed
         :return: void
         """
-        newlife = self.life
-        if newlife < 0:
-            self.life = 0
+        newlife=self.life+change
+        
+        if newlife >=120:
+            self.life = 120
         else:
-            self.life = newlife
+            self.life=newlife
 
 #-----------------------------------------------------------------------------------------------------------------------
 

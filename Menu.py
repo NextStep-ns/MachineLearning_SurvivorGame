@@ -1,48 +1,91 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue May 14 18:39:35 2024
-
-@author: andre
-"""
-
-import os
 import pygame
-from game import Game
-import subprocess
+import sys
+from agent import train
 
-def select_game_mode():
-    menu_font = pygame.font.Font(None, 36)
-    text_play_human = menu_font.render("1. Play as a Human", True, (255, 255, 255))
-    text_play_ai = menu_font.render("2. Play with AI", True, (255, 255, 255))
 
-    screen.fill((0, 0, 0))
-    screen.blit(text_play_human, (300, 200))
-    screen.blit(text_play_ai, (300, 250))
-    pygame.display.flip()
+class Menu:
 
-    mode = None
-    while mode is None:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return None
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_1:
-                    return "human"
-                elif event.key == pygame.K_2:
-                    return "ai"
+    def __init__(self) -> None:
+        # Initialize Pygame
+        pygame.init()
 
-if __name__ == '__main__':
-    pygame.init()
-    screen = pygame.display.set_mode((900, 600))
-    pygame.display.set_caption("Survivor Simulator")
+        # Screen settings
+        self.screen_width = 900
+        self.screen_height = 600
+        self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
+        pygame.display.set_caption("Eat or Die")
 
-    while True:
-        mode = select_game_mode()
-        if mode is None:
-            break
-        elif mode == "human":
-            subprocess.call(['python', 'main.py'])
-        elif mode == "ai":
-            subprocess.call(['python', 'play_ai.py']) # Il faudra bien entendu créer le fichier python
+        # Fonts
+        self.font = pygame.font.SysFont(None, 55)
+        self.small_font = pygame.font.SysFont(None, 35)
 
-    pygame.quit()
+        self.background_image_menu = pygame.image.load('game_menu.jpg')
+        self.background_image_menu = pygame.transform.scale(self.background_image_menu, (self.screen_width, self.screen_height))
+
+        self.background_image_ai = pygame.image.load('ai_menu.jpg')
+        self.background_image_ai = pygame.transform.scale(self.background_image_ai, (self.screen_width, self.screen_height))
+
+
+
+    def label(self,msg, x, y, w, h,mode, action=None):
+        mouse = pygame.mouse.get_pos()
+        click = pygame.mouse.get_pressed()
+
+        if x + w > mouse[0] > x and y + h > mouse[1] > y:
+            if click[0] == 1 and action is not None:
+                action(mode)
+
+            self.text_surface, self.text_rect = self.font.render(msg, True, (255,255,255)),self.font.render(msg, True, (255,255,255)).get_rect()
+            self.text_rect.center = ((x + (w / 2)), (y + (h / 2)))
+            self.screen.blit(self.text_surf, self.text_rect)
+
+        else:
+            self.text_surf, self.text_rect = self.font.render(msg, True, (0,0,0)),self.font.render(msg, True, (0,0,0)).get_rect()
+            self.text_rect.center = ((x + (w / 2)), (y + (h / 2)))
+            self.screen.blit(self.text_surf,self.text_rect)
+
+
+
+    def choice_play(self,mode):
+        self.choice="PLAY"
+        # game=PlayerGame()
+        # game.run()
+
+
+    def choice_ai(self,mode):
+        self.choice="AI"
+        #train()
+
+    def load_model(self,mode):
+        train(mode)
+
+    def train_model(self,mode):
+        train(mode)
+
+
+    def game_menu(self):
+        self.choice="MENU"
+        while True:
+            if self.choice=="MENU":
+                self.screen.blit(self.background_image_menu, (0, 0))
+
+                self.label("", 150, 300, 300, 150,0, self.choice_play)
+                self.label("", 500, 350, 300, 150,0, self.choice_ai)
+
+            elif self.choice=="AI":
+                self.screen.blit(self.background_image_ai, (0, 0))
+
+                self.label("", 10, 180, 300, 150, 1, self.train_model)
+                self.label("", 280, 210, 300, 150, 2, self.load_model)
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+
+            pygame.display.update()
+
+
+if __name__ == "__main__":
+    menu=Menu()
+    menu.game_menu()

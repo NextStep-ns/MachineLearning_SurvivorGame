@@ -15,6 +15,8 @@ class Knife(pygame.sprite.Sprite):
     # Méthode pour faire réapparaître la carotte à une nouvelle position aléatoire
     def respawn(self, x, y):
         self.rect.topleft = (x, y)
+        self.x=x
+        self.y=y
         print(self.rect.topleft)
 
 #-----------------------------------------------------------------------------------------------------------------------
