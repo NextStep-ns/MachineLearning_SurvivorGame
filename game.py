@@ -27,11 +27,12 @@ GREY = (100,100,100)
 CELL_SIZE=16
 
 REWARD_TRAP = 0
-REWARD_CARROT = 10
-REWARD_KNIFE = 8
-REWARD_COW = 40
+REWARD_CARROT = 100
+REWARD_KNIFE = 300
+REWARD_COW = 1000
 REWARD_TIME = 0
-#REWARD_DEAD = -100
+REWARD_DEAD = -50
+REWARD_DEAD_WATER=-100
 
 BONUS_CARROT=25
 BONUS_COW=100
@@ -153,6 +154,11 @@ class GameAI:
 
 #-----------------------------------------------------------------------------------------------------------------------
 
+    def have_knife(self):
+        return "knife" in self.player.inventory
+
+#-----------------------------------------------------------------------------------------------------------------------
+
     def game_to_matrix_position(self, x, y):
         """
         Convert game coordinates (x, y) to matrix indices (i, j).
@@ -201,7 +207,7 @@ class GameAI:
         self.screen.blit(carrots_text, (0, 75))  # Display at (0, 50) on the screen
         cows_text = self.font.render(f"Cows: {self.n_cows}", True, (0, 0, 0))
         self.screen.blit(cows_text, (0, 100))  # Display at (0, 50) on the screen
-        k_text = self.font.render(f"Cows: {self.n_cows}", True, (0, 0, 0))
+        k_text = self.font.render(f"Knifes: {self.n_knife}", True, (0, 0, 0))
         self.screen.blit(k_text, (0, 125))  # Display at (0, 50) on the screen
         game_text = self.font.render(f"Game: {self.n_games}", True, (0, 0, 0))
         self.screen.blit(game_text, (0, 150))  # Display at (0, 50) on the screen
@@ -219,30 +225,30 @@ class GameAI:
         
         clock_wise = [ActionMouvement.RIGHT, ActionMouvement.DOWN, ActionMouvement.LEFT, ActionMouvement.UP,ActionMouvement.INTERACT]
 
-        if np.array_equal(action, [1, 0, 0, 0]):
+        if np.array_equal(action, [1, 0, 0, 0, 0]):
             new_dir = clock_wise[0] # GO RIGHT
             #print('RIGHT')
             self.player.move_right()
         
-        if np.array_equal(action, [0, 1, 0, 0]):
+        if np.array_equal(action, [0, 1, 0, 0, 0]):
             new_dir = clock_wise[1] # GO DOWN
             #print('DOWN')
             self.player.move_down()
 
-        if np.array_equal(action, [0, 0, 1, 0]):
+        if np.array_equal(action, [0, 0, 1, 0, 0]):
             new_dir = clock_wise[2] # GO LEFT
             #print('LEFT')
             self.player.move_left()
 
-        if np.array_equal(action, [0, 0, 0, 1]):
+        if np.array_equal(action, [0, 0, 0, 1, 0]):
             new_dir = clock_wise[3] # GO UP
             #print('UP')
             self.player.move_up()
 
-        """if np.array_equal(action, [ 0, 0, 0, 0, 1]):
+        if np.array_equal(action, [ 0, 0, 0, 0, 1]):
             new_dir = clock_wise[4] # INTERACT
             self.reward+=0
-            print('INTERACT')"""
+            print('INTERACT')
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -272,7 +278,7 @@ class GameAI:
             self.player.life =-500
             self.player.image = pygame.image.load('tiled/drowning_character.png')
             self.player.image = pygame.transform.scale(self.player.image, (40, 40))
-            self.reward -= 100
+            self.reward -= REWARD_DEAD_WATER
             return True
 
         else:
@@ -362,18 +368,21 @@ class GameAI:
         knife_posx, knife_posy = knife.x, knife.y
         player_posx, player_posy = self.player.feet.center[0], self.player.feet.center[1]
 
-        if dir == 0:
-            self.right = player_posx + CELL_SIZE  < knife_posx
-            return self.right
-        elif dir == 1:
-            self.down = player_posy + CELL_SIZE < knife_posy
-            return self.down
-        elif dir == 2:
-            self.left = knife_posx < player_posx - CELL_SIZE
-            return self.left
-        elif dir == 3:
-            self.up = knife_posy < player_posy - CELL_SIZE
-            return self.up
+        if not (knife_posx==2000 and knife_posy==2000):
+            if dir == 0:
+                self.right = player_posx + CELL_SIZE  < knife_posx
+                return self.right
+            elif dir == 1:
+                self.down = player_posy + CELL_SIZE < knife_posy
+                return self.down
+            elif dir == 2:
+                self.left = knife_posx < player_posx - CELL_SIZE
+                return self.left
+            elif dir == 3:
+                self.up = knife_posy < player_posy - CELL_SIZE
+                return self.up
+        else:
+            return False
 
         # -----------------------------------------------------------------------------------------------------------------------
 
@@ -431,6 +440,16 @@ class GameAI:
                 self.interaction_trap = False
                 self.player.life = 0
                 return
+            if item == "knife":
+                self.player.image = pygame.image.load('tiled/personnage_couteau.png')
+                self.player.image = pygame.transform.scale(self.player.image, (40, 40))
+                self.player.add_to_inventory("knife")
+                for item_obj in group:
+                    item_obj.respawn(2000, 2000)
+                    break
+                setattr(self, interaction, False)
+                return
+
             for item_obj in group:
                 while True:
                     x = random.randint(0, len(self.sand_matrix) * CELL_SIZE) - 1
@@ -451,10 +470,19 @@ class GameAI:
                 self.player.image.set_colorkey([0, 0, 0])
                 #self.knife_holding_duration += self.player.holding_knife_time()
                 self.player.remove_from_inventory("knife")
+                setattr(self, interaction, False)
+                while True:
 
-            if item == "knife":
-                self.player.image = pygame.image.load('tiled/personnage_couteau.png')
-                self.player.image = pygame.transform.scale(self.player.image, (40, 40))
+                    x = random.randrange(288, 512, 16)  # random.randint(0, len(self.sand_matrix) * 16) - 1
+                    y = random.randrange(288, 512, 16)  # random.randint(0, len(self.sand_matrix) * 16) - 1
+
+                    x_m, y_m = self.game_to_matrix_position(x, y)
+                    rect = pygame.Rect(x, y, 20, 20)
+                    if not any(rect.colliderect(wall) for wall in self.walls) and self.sand_matrix[x_m][y_m] > 0:
+                        break
+                for item_obj in self.knife_group:
+                    item_obj.respawn(x, y)
+                    break
 
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -471,7 +499,7 @@ class GameAI:
         self.group.update()
         for obj in getattr(self, f"{item}_group"):
             if item == "cow":
-                if obj.rect.colliderect(self.player.rect):
+                if obj.rect.colliderect(self.player.rect) and action[-1]==1:
                     if self.player.check_inventory("knife"):
                         setattr(self, f"interaction_{item}", True)
                         self.reward+=REWARD_COW
@@ -487,7 +515,7 @@ class GameAI:
                     self.game_over_var=True
                     return obj
 
-            elif item == "carrot":
+            elif item == "carrot" and action[-1]==1:
                 if obj.rect.colliderect(self.player.feet):
                     setattr(self, f"interaction_{item}", True)
                     self.reward+=REWARD_CARROT
@@ -495,9 +523,8 @@ class GameAI:
                     return obj
 
             elif item == "knife":
-                if obj.rect.colliderect(self.player.feet):
+                if obj.rect.colliderect(self.player.feet) and action[-1]==1:
                     setattr(self, f"interaction_{item}", True)
-                    self.player.add_to_inventory("knife")
                     self.reward+=REWARD_KNIFE
                     self.n_knife += 1
                     return obj
@@ -563,8 +590,7 @@ class GameAI:
         # Check if player's life is zero or if iterations too long
         if self.player.life <= 0:
             self.game_over_var=True
-            #self.reward += REWARD_DEAD
-
+            self.reward += REWARD_DEAD
 
         # Carrots
         if not self.carrot_group:
@@ -600,6 +626,6 @@ class GameAI:
         """
 
         self.clock.tick(SPEED)
-        self.reward += REWARD_TIME
+        #self.reward += REWARD_TIME
 
         return self.reward, self.game_over_var,self.n_carrots, self.n_cows, self.n_knife
