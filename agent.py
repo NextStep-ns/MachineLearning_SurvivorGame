@@ -2,7 +2,6 @@ import torch
 import random
 import numpy as np
 from collections import deque
-import os
 from game import GameAI
 from model import Linear_QNet, QTrainer
 from plotter import plot,hist
@@ -13,8 +12,6 @@ BATCH_SIZE = 1000
 LR = 0.001
 DANGER=5
 
-print(os.getcwd())
-
 
 class Agent:
 
@@ -23,7 +20,7 @@ class Agent:
         self.epsilon = 0 # randomness
         self.gamma = 0.9 # discount rate
         self.memory = deque(maxlen=MAX_MEMORY) # popleft()
-        self.model = Linear_QNet(8, 256, 4)
+        self.model = Linear_QNet(17, 256, 5)
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
 
 
@@ -95,6 +92,18 @@ class Agent:
             game.where_is_carrot(2),
             game.where_is_carrot(3),
 
+            # Cow
+            game.where_is_cow(0),
+            game.where_is_cow(1),
+            game.where_is_cow(2),
+            game.where_is_cow(3),
+
+            # Carrots
+            game.where_is_knife(0),
+            game.where_is_knife(1),
+            game.where_is_knife(2),
+            game.where_is_knife(3),
+            game.have_knife()
         ]
             
         return np.array(state, dtype=int)
@@ -118,24 +127,16 @@ class Agent:
 
     def get_action(self, state):
         # random moves: tradeoff exploration / exploitation
-        self.epsilon = 15000
-       # final_move = [0,0,0,0,0]
-        final_move = [0,0,0,0]
-        if self.n_games>5000:
-            self.epsilon-=self.n_games-5000
-        if self.n_games>15000:
-            self.epsilon=0
-        if random.randint(0,14999 ) < self.epsilon:
+        self.epsilon = 1500-self.n_games
+        final_move = [0,0,0,0,0]
+        if random.randint(0,1500) < self.epsilon:
             move = random.randint(0, len(final_move)-1)
-            print(move)
             final_move[move] = 1
+        
         else:
             state0 = torch.tensor(state, dtype=torch.float)
             prediction = self.model(state0)
             move = torch.argmax(prediction).item()
-            if move==4:
-                move = random.randint(0, len(final_move)-1)
-            print(move)
             final_move[move] = 1
 
         return final_move
@@ -143,10 +144,15 @@ class Agent:
 
 def train():
     plot_scores = []
-    #plot_actions = [0,0,0,0,0,0]
-    plot_actions = [0,0,0,0]
+    plot_scores_cow = []
+    plot_scores_knife = []
+    plot_actions = [0,0,0,0,0]
     plot_mean_scores = []
+    plot_mean_scores_cow = []
+    plot_mean_scores_knife = []
     total_score = 0
+    total_score_cow=0
+    total_score_knife=0
     record = 0
     agent = Agent()
     game = GameAI()
@@ -160,34 +166,48 @@ def train():
         #hist(plot_actions)
         
         # perform move and get new state
-        reward, done, score = game.play_step(final_move,agent.n_games)
+        reward, done, score, score_cow, score_knife = game.play_step(final_move,agent.n_games)
         state_new = agent.get_state(game)
 
         # train short memory
         agent.train_short_memory(state_old, final_move, reward, state_new, done)
-
+        #print(reward)
         # remember
         agent.remember(state_old, final_move, reward, state_new, done)
-        if done:
+        if done or game.frame_iteration>200*(game.n_carrots+1):
             # train long memory, plot result
             game.reset()
             agent.n_games += 1
             agent.train_long_memory()
 
-            if score > record:
-                record = score
+            if score_cow > record:
+                record = score_cow
                 agent.model.save()
 
             print('Game', agent.n_games, 'Score', score, 'Record:', record)
 
-            plot_scores.append(score)
-            total_score += score
+            plot_scores.append(score_cow)
+            total_score += score_cow
             mean_score = total_score / agent.n_games
             plot_mean_scores.append(mean_score)
             plot(plot_scores, plot_mean_scores)
-            #plot_actions = [0,0,0,0,0,0]
-            plot_actions = [0,0,0,0]
+            plot_actions = [0,0,0,0,0,0]
 
+            '''
+
+            plot_scores_cow.append(score_cow)
+            total_score_cow += score_cow
+            mean_score_cow = total_score_cow / agent.n_games
+            plot_mean_scores_cow.append(mean_score_cow)
+            plot(plot_scores_cow, plot_mean_scores_cow)
+            plot_actions = [0,0,0,0,0,0]
+
+            plot_scores_knife.append(score_knife)
+            total_score_knife += score_knife
+            mean_score_knife = total_score_knife / agent.n_games
+            plot_mean_scores_knife.append(mean_score_knife)
+            plot(plot_scores_knife, plot_mean_scores_knife)
+            plot_actions = [0,0,0,0,0,0] '''
 
 if __name__ == '__main__':
     train()

@@ -30,8 +30,8 @@ class Player(pygame.sprite.Sprite):
         self.old_position = self.position.copy()
 
         #HP of the player
-        self.life=100
-        self.max_health = 100
+        self.life=120
+        self.max_health = 120
 
         # Initialize last update time
         self.last_update_time = pygame.time.get_ticks()
@@ -62,11 +62,12 @@ class Player(pygame.sprite.Sprite):
         :param change: The amount by which the life should be changed
         :return: void
         """
-        newlife = self.life + change
-        if newlife < 0:
-            self.life = 0
+        newlife=self.life+change
+        
+        if newlife >=120:
+            self.life = 120
         else:
-            self.life = newlife
+            self.life=newlife
 
 #-----------------------------------------------------------------------------------------------------------------------
 
