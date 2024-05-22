@@ -15,6 +15,8 @@ class Linear_QNet(nn.Module):
 
     def forward(self,x):
         x = F.relu(self.linear1(x))
+        x = F.relu(self.linear2(x))
+        x = F.relu(self.linear3(x))
         x = self.linear4(x)
         return x
     
@@ -31,14 +33,6 @@ class Linear_QNet(nn.Module):
         torch.save(self.state_dict(),file_name)
         if os.path.isfile(file_name):
             print(f"file saved as {file_name}")
-
-    def load(self, file_path):
-        if os.path.isfile(file_path):
-            self.load_state_dict(torch.load(file_path))
-            self.eval()
-            print(f"Model loaded from {file_path}")
-        else:
-            print(f"File {file_path} does not exist")
 
 class QTrainer:
     def __init__(self,model,lr,gamma) -> None:

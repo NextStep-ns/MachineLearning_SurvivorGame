@@ -5,18 +5,21 @@ class Knife(pygame.sprite.Sprite):
         super().__init__()
         self.x = x
         self.y = y
+        self.width = 30
+        self.heigth = 30
+        self.rect_size = 20
         self.image = pygame.image.load('tiled/knife.png')
-        self.image = pygame.transform.scale(self.image, (30, 30))
-        self.rect = self.image.get_rect()
-        self.rect.topleft = (x, y)
+        self.image = pygame.transform.scale(self.image, (self.width, self.heigth))
+        self.rect = pygame.Rect(self.x+self.width/2 - self.rect_size/2, self.y+self.heigth/2 - self.rect_size/2, self.rect_size, self.rect_size)
+        self.rect.topleft = (self.x, self.y)
 
 #-----------------------------------------------------------------------------------------------------------------------
 
     # Méthode pour faire réapparaître la carotte à une nouvelle position aléatoire
     def respawn(self, x, y):
-        self.x = x
-        self.y = y
         self.rect.topleft = (x, y)
+        self.x=x
+        self.y=y
         print(self.rect.topleft)
 
 #-----------------------------------------------------------------------------------------------------------------------

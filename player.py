@@ -1,10 +1,7 @@
 import pygame
-import time
 
 #-----------------------------------------------------------------------------------------------------------------------
 CELL_SIZE=16
-LIFE_LOST = -3
-
 class Player(pygame.sprite.Sprite):
 
     def __init__(self,x ,y):
@@ -21,26 +18,29 @@ class Player(pygame.sprite.Sprite):
 
         # Create a rectangle around the character for collisions
         self.rect = self.image.get_rect()
+        print("RECTTTT3",self.rect)
         self.position = [self.x,self.y]
+        print(self.position)
 
         self.speed = CELL_SIZE
 
         # Create a rectangle around the character's feet. Initialize at (0,0) that is topleft corner, the width and height
-        self.feet = pygame.Rect(0, 0, self.rect.width * 0.3, 12)
+        self.feet = pygame.Rect(0, 0, self.rect.width/3, self.rect.height/4)
 
+        player_posx,player_posy=self.feet.center[0],self.feet.center[1]
+        print("INITIALISATION",player_posx,player_posy)
         # Keep in memory the old character position in case of collision
         self.old_position = self.position.copy()
 
         #HP of the player
-        self.life=100
-        self.max_health = 100
+        self.life=150
+        self.max_health = 150
 
         # Initialize last update time
         self.last_update_time = pygame.time.get_ticks()
 
         # Initialize the inventory attribute as an empty list
         self.inventory = []
-        self.knife_pickup_time = None
 
     #-----------------------------------------------------------------------------------------------------------------------
 
@@ -54,7 +54,7 @@ class Player(pygame.sprite.Sprite):
 
         # If 1 second has passed, decrease player's life by 1
         if elapsed_time >= 100:
-            self.life_evolution(LIFE_LOST)
+            self.life_evolution(-3)
             self.last_update_time = now
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -65,11 +65,12 @@ class Player(pygame.sprite.Sprite):
         :param change: The amount by which the life should be changed
         :return: void
         """
-        newlife = self.life + change
-        if newlife < 0:
-            self.life = 0
+        newlife=self.life+change
+        
+        if newlife >=150:
+            self.life = 150
         else:
-            self.life = newlife
+            self.life=newlife
 
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -125,16 +126,12 @@ class Player(pygame.sprite.Sprite):
 
     def add_to_inventory(self, item):
         self.inventory.append(item)
-        if item == "knife":
-            self.knife_pickup_time = time.time()
 
 #-----------------------------------------------------------------------------------------------------------------------
 
     def remove_from_inventory(self, item):
         if item in self.inventory:
             self.inventory.remove(item)
-        if item == "knife":
-            self.knife_pickup_time = None
 
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -143,8 +140,3 @@ class Player(pygame.sprite.Sprite):
             if object == item:
                 return True
         return False
-
-    def holding_knife_time(self):
-        if self.knife_pickup_time is None:
-            return 0
-        return time.time() - self.knife_pickup_time

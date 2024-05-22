@@ -70,24 +70,10 @@ class Agent:
             game.where_is_knife(3),
             game.have_knife()
             ]
+        
+        print("STATE",state)
             
         return np.array(state, dtype=int)
-
-    """# Carrots
-        game.where_is_item(game.carrot_group, 0),
-        game.where_is_item(game.carrot_group, 1),
-        game.where_is_item(game.carrot_group, 2),
-        game.where_is_item(game.carrot_group, 3),
-
-        game.where_is_item(game.cow_group, 0),
-        game.where_is_item(game.cow_group, 1),
-        game.where_is_item(game.cow_group, 2),
-        game.where_is_item(game.cow_group, 3),
-
-        game.where_is_item(game.knife_group, 0),
-        game.where_is_item(game.knife_group,1),
-        game.where_is_item(game.knife_group,2),
-        game.where_is_item(game.knife_group,3),"""
 
     # -----------------------------------------------------------------------------------------------------------------------
 

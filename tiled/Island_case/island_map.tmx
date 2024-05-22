@@ -221,7 +221,7 @@
 </data>
  </layer>
  <objectgroup id="4" name="objects">
-  <object id="1" name="Spawn_character" x="400.322" y="400.14">
+  <object id="1" name="Spawn_character" x="385" y="365">
    <point/>
   </object>
   <object id="2" type="collision" x="0" y="0">
