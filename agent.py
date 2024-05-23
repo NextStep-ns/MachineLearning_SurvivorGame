@@ -15,7 +15,7 @@ MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
 LR = 0.001
 DANGER=5
-TRESHOLD=1000
+TRESHOLD=500
 # MODEL=1 sans model, MODEL=2 avec model
 MODEL = 1
 
@@ -142,14 +142,14 @@ class Agent:
             self.train_short_memory(state_old, self.final_move, reward, state_new, done)
             # remember
             self.remember(state_old, self.final_move, reward, state_new, done)
-            if done or game.frame_iteration > 200 * (game.n_carrots + 1):
+            if done:
                 # train long memory, plot result
                 game.reset()
                 self.n_games += 1
                 self.train_long_memory()
 
-                if score > record:
-                    record = score
+                if score_cow > record:
+                    record = score_cow
                     self.model.save(score=record)
 
                 print('Game', self.n_games, 'Score', score, 'Record:', record)

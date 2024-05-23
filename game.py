@@ -57,6 +57,7 @@ class GameAI:
         self.map_data = pyscroll.data.TiledMapData(self.tmx_data)
         self.map_layer = pyscroll.orthographic.BufferedRenderer(self.map_data, (self.width, self.heigth))
         self.clock = pygame.time.Clock()
+
         self.reset()
         
     def reset(self):
@@ -233,27 +234,22 @@ class GameAI:
 
         if np.array_equal(action, [1, 0, 0, 0, 0]):
             new_dir = clock_wise[0] # GO RIGHT
-            print('RIGHT')
             self.player.move_right()
         
         if np.array_equal(action, [0, 1, 0, 0, 0]):
             new_dir = clock_wise[1] # GO DOWN
-            print('DOWN')
             self.player.move_down()
 
         if np.array_equal(action, [0, 0, 1, 0, 0]):
             new_dir = clock_wise[2] # GO LEFT
-            print('LEFT')
             self.player.move_left()
 
         if np.array_equal(action, [0, 0, 0, 1, 0]):
             new_dir = clock_wise[3] # GO UP
-            print('UP')
             self.player.move_up()
 
         if np.array_equal(action, [ 0, 0, 0, 0, 1]):
             new_dir = clock_wise[4] # INTERACT
-            print('INTERACT')
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -318,7 +314,6 @@ class GameAI:
             cell=[pos[0],pos[1]-1]
 
         if self.sand_array[int(cell[0]),int(cell[1])]==0:
-            print("true")
             return True
         else:
             return False
@@ -326,23 +321,29 @@ class GameAI:
 #-----------------------------------------------------------------------------------------------------------------------
 
     def where_is_carrot(self,dir=None):
-        carrot_list = list(self.carrot_group)
-        carrot = carrot_list[0]
-        carrot_posx,carrot_posy=carrot.rect.center
-        player_posx,player_posy=self.player.feet.center
 
-        if dir==0:
-            self.right=player_posx<carrot_posx
-            return self.right
-        elif dir==1:
-            self.down=player_posy<carrot_posy
-            return self.down
-        elif dir==2:
-            self.left = carrot_posx< player_posx
-            return self.left
-        elif dir==3:
-            self.up=carrot_posy< player_posy
-            return self.up
+        carrot = list(self.carrot_group)[0]
+        carrot_posx, carrot_posy = carrot.rect.center
+        player_posx, player_posy = self.player.feet.center
+
+        # Définir la zone autour de la carotte (8 cases adjacentes + la case de la carotte)
+        left_bound = carrot_posx - 16
+        right_bound = carrot_posx + 16
+        top_bound = carrot_posy - 16
+        bottom_bound = carrot_posy + 16
+
+        # Vérifier si le joueur est dans cette zone
+        if left_bound <= player_posx <= right_bound and top_bound <= player_posy <= bottom_bound:
+            return False
+
+        if dir == 0:  # Droite
+            return player_posx < carrot_posx
+        elif dir == 1:  # Bas
+            return player_posy < carrot_posy
+        elif dir == 2:  # Gauche
+            return carrot_posx < player_posx
+        elif dir == 3:  # Haut
+            return carrot_posy < player_posy
 
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -351,6 +352,16 @@ class GameAI:
         cow = cow_list[0]
         cow_posx, cow_posy = cow.rect.center
         player_posx, player_posy = self.player.feet.center
+
+        # Définir la zone autour de la carotte (8 cases adjacentes + la case de la carotte)
+        left_bound = cow_posx - 16
+        right_bound = cow_posx + 16
+        top_bound = cow_posy - 16
+        bottom_bound = cow_posy + 16
+
+        # Vérifier si le joueur est dans cette zone
+        if left_bound <= player_posx <= right_bound and top_bound <= player_posy <= bottom_bound:
+            return False
 
         if dir == 0:
             self.right = player_posx< cow_posx
@@ -373,7 +384,17 @@ class GameAI:
         knife_posx, knife_posy = knife.rect.center
         player_posx, player_posy = self.player.feet.center
 
+        # Définir la zone autour de la carotte (8 cases adjacentes + la case de la carotte)
+        left_bound = knife_posx - 16
+        right_bound = knife_posx + 16
+        top_bound = knife_posy - 16
+        bottom_bound = knife_posy + 16
+
         if not (knife_posx==2000 and knife_posy==2000):
+
+            if left_bound <= player_posx <= right_bound and top_bound <= player_posy <= bottom_bound:
+                return False
+
             if dir == 0:
                 self.right = player_posx < knife_posx
                 return self.right
@@ -399,13 +420,8 @@ class GameAI:
         if not getattr(self, exist_attr):
             for _ in range(Nbr):
                 while True:
-                    if self.n_cows>10:
-                        x = random.randrange(6, len(self.sand_matrix) * CELL_SIZE-16-10,16)
-                        y = random.randrange(6, len(self.sand_matrix) * CELL_SIZE-16-10,16)
-                    else: 
-                        x = random.randrange(320+16*2-10, 480-16*2-10,16) 
-                        y = random.randrange(320+16*2-10, 480-16*2-10,16)
-
+                    x = random.randrange(320-10, 480-10,16) 
+                    y = random.randrange(320-10, 480-10,16)
                     x_m, y_m = self.game_to_matrix_position(x, y)
                     rect = pygame.Rect(x, y, 20, 20)
                     if not any(rect.colliderect(wall) for wall in self.walls) and (self.sand_matrix[x_m][y_m]>0):
@@ -443,12 +459,12 @@ class GameAI:
                         x = random.randrange(6, len(self.sand_matrix) * CELL_SIZE-16-10,16)
                         y = random.randrange(6, len(self.sand_matrix) * CELL_SIZE-16-10,16)
                     else:
-                        x = random.randrange(320+16*2-10, 480-16*2-10,16) 
-                        y = random.randrange(320+16*2-10, 480-16*2-10,16)
+                        x = random.randrange(320-10, 480-10,16) 
+                        y = random.randrange(320-10, 480-10,16)
                     
                     x_m, y_m = self.game_to_matrix_position(x, y)
                     rect = pygame.Rect(x, y, 20, 20)
-                    if not any(rect.colliderect(wall) for wall in self.walls) and (self.sand_matrix[x_m][y_m]) > 0 and (x!=400 or y!=400):
+                    if not any(rect.colliderect(wall) for wall in self.walls) and (self.sand_matrix[x_m][y_m]) > 0:
                         break
                 item_obj.respawn(x, y)
                 break
@@ -466,8 +482,8 @@ class GameAI:
                         x = random.randrange(6, len(self.sand_matrix) * CELL_SIZE-16-10,16)
                         y = random.randrange(6, len(self.sand_matrix) * CELL_SIZE-16-10,16)
                     else:
-                        x = random.randrange(320+16*2-10, 480-16*2-10,16) 
-                        y = random.randrange(320+16*2-10, 480-16*2-10,16)
+                        x = random.randrange(320-10, 480-10,16) 
+                        y = random.randrange(320-10, 480-10,16)
 
                     x_m, y_m = self.game_to_matrix_position(x, y)
                     rect = pygame.Rect(x, y, 20, 20)
@@ -487,21 +503,34 @@ class GameAI:
 
 #-----------------------------------------------------------------------------------------------------------------------
 
+    def positions_autour(self,x, y, pas=16):
+        positions = [
+            (x, y),             # Centre
+            (x - pas, y),       # Gauche
+            (x - pas, y - pas), # Haut-Gauche
+            (x, y - pas),       # Haut
+            (x + pas, y - pas), # Haut-Droite
+            (x + pas, y),       # Droite
+            (x + pas, y + pas), # Bas-Droite
+            (x, y + pas),       # Bas
+            (x - pas, y + pas)  # Bas-Gauche
+        ]
+        return positions
+
+#-----------------------------------------------------------------------------------------------------------------------
+
+
     def collision_item(self, item, action):
         # Mettre à jour la position du personnage en cas de collision
         self.group.update()
         for obj in getattr(self, f"{item}_group"):
+            collision=self.positions_autour(*obj.rect.center,16)
             if item == "cow":
-                if obj.rect.center==self.player.feet.center and action[-1]==1:
-                    if self.player.check_inventory("knife"):
-                        setattr(self, f"interaction_{item}", True)
-                        self.reward+=REWARD_COW
-                        self.n_cows += 1
-                        print("CHAMPION COW")
-
-                        return obj
-                    #else:
-                        #self.reward-=20
+                if self.player.feet.center in collision and self.player.check_inventory("knife") and action[-1]==1:
+                    setattr(self, f"interaction_{item}", True)
+                    self.reward+=REWARD_COW
+                    self.n_cows += 1
+                    return obj
 
             elif item == "trap":
                 if obj.rect.colliderect(self.player.feet):
@@ -511,22 +540,19 @@ class GameAI:
                     return obj
 
             elif item == "carrot":
-                if obj.rect.center==self.player.feet.center and action[-1]==1:
+                if self.player.feet.center in collision and action[-1]==1:
                     setattr(self, f"interaction_{item}", True)
-                    print("CHAMPION CARROT")
                     self.reward+=REWARD_CARROT
                     self.n_carrots+=1
                     return obj
-
+  
             elif item == "knife":
-                if obj.rect.center==self.player.feet.center and action[-1]==1:
+                if self.player.feet.center in collision and action[-1]==1:
                     setattr(self, f"interaction_{item}", True)
                     self.reward+=REWARD_KNIFE
                     self.n_knife += 1
-                    print("CHAMPION KNIFE")
-
                     return obj
-
+    
 #-----------------------------------------------------------------------------------------------------------------------
 
     def game_over(self):
