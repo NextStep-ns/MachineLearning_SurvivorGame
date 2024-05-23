@@ -267,32 +267,47 @@ class Game:
                 self.game_over(self)
                 return
             if item == "cow":
+                print("killing cow")
+                self.is_dying = True
+                
                 for cow in self.cow_group:
                     cow.animate('dead')
-                    if cow.dead_animation_done:
-                        self.is_dying = False
-                        self.player.remove_from_inventory("knife")
-                        for item_obj in group:
-                            while True:
-                                x = random.randint(0, len(self.sand_matrix) * 128) - 1
-                                y = random.randint(0, len(self.sand_matrix) * 128) - 1
-                                x_m, y_m = self.game_to_matrix_position(x, y)
-                                rect = pygame.Rect(x, y, 20, 20)
-                                if not any(rect.colliderect(wall) for wall in self.walls) and self.sand_matrix[x_m][y_m] > 0:
-                                    break
-                                item_obj.respawn(x, y)
-                            cow.respawn(x, y)  # Reset cow state
-                            break
-
-            else:
+                    print('jeoazhfoeofj',cow.dead_animation_done)
+                      
+                if cow.dead_animation_done==True:
+                    self.is_dying=False
+                    self.player.remove_from_inventory("knife")
+                    for item_obj in group:
+                        while True:
+                            print('check you dont change place ?')
+                            current_time = pygame.time.get_ticks()
+                            self.pressed = pygame.key.get_pressed()
+                            x = random.randint(0, len(self.sand_matrix) * 128) - 1
+                            y = random.randint(0, len(self.sand_matrix) * 128) - 1
+                            x_m, y_m = self.game_to_matrix_position(x, y)
+                            rect = pygame.Rect(x, y, 20, 20)
+                            if not any(rect.colliderect(wall) for wall in self.walls) and self.sand_matrix[x_m][y_m] > 0:
+                                break
+                            
+                            item_obj.respawn(x, y)
+                        
+                        
+                        break
+                        
+                
+                
+            if item != "cow":     
                 for item_obj in group:
                     while True:
+                        current_time = pygame.time.get_ticks()
+                        self.pressed = pygame.key.get_pressed()
                         x = random.randint(0, len(self.sand_matrix) * 128) - 1
                         y = random.randint(0, len(self.sand_matrix) * 128) - 1
                         x_m, y_m = self.game_to_matrix_position(x, y)
                         rect = pygame.Rect(x, y, 20, 20)
                         if not any(rect.colliderect(wall) for wall in self.walls) and self.sand_matrix[x_m][y_m] > 0:
                             break
+                        
                         item_obj.respawn(x, y)
                     break
             setattr(self, interaction, False)
@@ -387,13 +402,19 @@ class Game:
             
             if not self.cow_group:
                 self.spawn_item(1, "cow")
-            for cow in self.cow_group:
-                if not cow.dead_animation_done:
-                    cow.animate('dead' if self.interaction_cow else 'alive')
+                
+            if self.is_dying==False:
+                for cow in self.cow_group:
+                    cow.animate() 
+                    
+            
+                
+
             self.draw_item("cow")
             self.collision_item("cow", pygame.K_c)
             self.update_item(20, "cow")
-            
+            self.is_dying=False
+            pygame.display.flip()
 
             # Knife
             if not self.knife_group:
