@@ -1,15 +1,24 @@
 import pygame
 
+SIZE_TRAP = 256
+CELL_SIZE = 128
 class Trap(pygame.sprite.Sprite):
-    def __init__(self, x, y):
+    def __init__(self, x, y, SIZE):
         super().__init__()
         self.x = x
         self.y = y
-        self.image = pygame.image.load('tiled/trap.png')
-        self.image = pygame.transform.scale(self.image, (30, 30))
-        self.rect = self.image.get_rect()
-        self.rect = pygame.Rect(x+150, y+150, 30, 30)
-        self.rect.topleft = (x, y)
+        self.image = pygame.image.load('Map/Designs_candy/Piège/Piège-1.png')
+        self.image = pygame.transform.scale(self.image, (SIZE, SIZE))
+        self.rect = pygame.Rect(x, y, SIZE, SIZE)
+        self.rect.topleft = (self.x, self.y)
+
+        # Load images for different directions
+        self.images = {
+            'trap': [pygame.image.load(
+                f'Map/Designs_candy/Piège/Piège-{i}.png')
+                     for i in range(1, 4)],
+        }
+
 
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -22,3 +31,7 @@ class Trap(pygame.sprite.Sprite):
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)
+
+    def change_image(self, new_image_path):
+        self.image = pygame.image.load(new_image_path)
+        self.image = pygame.transform.scale(self.image, (SIZE_TRAP, SIZE_TRAP))
