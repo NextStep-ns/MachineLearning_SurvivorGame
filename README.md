@@ -27,7 +27,7 @@ Architecture:
 CarrotGameAI
 •	AI control --> Game controled by an AI.
  		- BestModel_Carrots
-1-	Tiled --> Folder containing all designs.
+			- Tiled --> Folder containing all designs.
 	  			- Island_map --> Tiled map and tilesets for the AI map.
 	  			- […]
 	  		2-   […]
